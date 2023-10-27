@@ -33,6 +33,7 @@ We also used a pre-trained Word2Vec model with 300-dimensional word embeddings t
 # Findings
 
 - For patients with schizophrenia, greater topic entropy correlates with positive thought disorder scores.
-![relationship between topic distribution and positive thought disorder]()
+![relationship between topic distribution and positive thought disorder](https://github.com/linwangmeyer/scz_LLMs/blob/master/plots/Entropy_LTI_patient_scatterplot.png)
   
 - Patients with schizophrenia show greater local semantic associations than healthy controls.
+![word2vec similarity difference between patients and controls](https://github.com/linwangmeyer/scz_LLMs/blob/master/plots/W2v_PatientCat_wordpos_lineplot.png)

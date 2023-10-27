@@ -10,6 +10,8 @@ We used BERTopic and Word2Vec to probe message-level and meaning-level represent
 
 We used a pre-trained BERTopic model with 2376 common topics discussed on Wikipedia to probe higher-level topic representations of all picture descriptions. We obtained the topic distributions and quantified the entropy of the topic distribution for each picture description. There are three methods available (see below). We used the first method because it captures moment-by-moment topics in the descriptions.
 
+For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).
+
 ### Approximate method
 
 The whole document is first segmented into tokensets using a moving time window (we chose ~30 words for each window). For each of these tokensets, we used their embedding vectors and find out how similar they are to the representations of previously generated topics. For each topic, the similarity values between the topic and all tokensets are summed, giving rise to one value for one topic. These similarity values across all topics are then normalized (by dividing each similarity value with the sum of the absolute similarity value) to create a topic distribution for the entire document.
@@ -31,4 +33,6 @@ We also used a pre-trained Word2Vec model with 300-dimensional word embeddings t
 # Findings
 
 - For patients with schizophrenia, greater topic entropy correlates with positive thought disorder scores.
+![relationship between topic distribution and positive thought disorder]()
+  
 - Patients with schizophrenia show greater local semantic associations than healthy controls.

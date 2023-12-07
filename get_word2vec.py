@@ -18,10 +18,10 @@ model = api.load("word2vec-google-news-300")
 from scipy.spatial.distance import pdist
 nltk.download('punkt')
 nltk.download('stopwords')
-stop_words_new = [',','’','uh','um','...','um…','xx','uh…','and…','hm',"'s",
+stop_words_new = [',','uh','um','...','um…','xx','uh…','and…','hm',"'s",
                   'mhmm','mmhmm','mhm',"''",'eh','re',"”",'v','hmm',"'m",'ish',
                   'umm','ii','yup','yes','ugh',"“",'ar','oh','h',"'re",'ohh',
-                  'wow','lo','aw','ta',"‘",'ah','na','ex',''','yo','ok','ah','mm',
+                  'wow','lo','aw','ta','ah','na','ex',"'","’","‘",'yo','ok','ah','mm',
                   'na','ra','ha','ka','huh','bc','a.c','uhh','hey','gee',"n't",'nah']
 stop_words = set(stopwords.words('english') + stop_words_new)
 
@@ -61,7 +61,9 @@ def get_content_words(stim):
         cleaned_word = cleaned_word.replace('stereotypicalprison', 'stereotypical prison')
         cleaned_word = cleaned_word.replace('almostof', 'almost of')
         cleaned_word = cleaned_word.replace('girlhas', 'girl has')
-        cleaned_word = cleaned_word.replace('shelooks', 'she looks')
+        cleaned_word = cleaned_word.replace('shelooks', 'she looks')        
+        cleaned_word = cleaned_word.replace('grey', 'gray')
+        cleaned_word = cleaned_word.replace('judgement', 'judgment')
         cleaned_words = cleaned_word.split()   # Split the cleaned word into multiple words
         for cleaned_subword in cleaned_words:
             cleaned_subword = cleaned_subword.replace('labour', 'labor')
@@ -175,26 +177,40 @@ result_df['ID'] = result_df['ID'].astype('int64')
 fname = os.path.join(parent_folder,'word2vec.csv')
 result_df.to_csv(fname,index=False)
 
-
-fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
+## --------------------------------------------------------------------
+# Load results and statistical tests
+## --------------------------------------------------------------------
+fname = os.path.join(parent_folder,'word2vec.csv')
+df_w2v = pd.read_csv(fname)
+fname_var = os.path.join(parent_folder,'TOPSY_all.csv') #containing topic measures
 df_var = pd.read_csv(fname_var)
-df_merge = df_var.merge(result_df,on='ID')
-df_merge.drop(columns='stim_y',inplace=True)
-df_merge.rename(columns={'stim_x':'stim'}, inplace=True)
-df_merge.to_csv(fname_var,index=False)
+
+df_merge = df_var.merge(df_w2v, on=['ID','stim'],how='outer')
+filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
+
+fname_all = os.path.join(parent_folder,'TOPSY_all.csv')
+filtered_df.to_csv(fname_all,index=False)
+
+df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
+fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
+df_goi.to_csv(fname_goi,index=False)
 
 
 ## --------------------------------------------------------------------
 # Visualize
 ## --------------------------------------------------------------------
+# Compare between two groups
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_all.csv')
-df_var = pd.read_csv(fname_var)
-filtered_df = df_var.loc[(df_var['PatientCat'] == 1) | (df_var['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','stim','n_sentence', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
-filtered_df_keep = filtered_df.dropna()
-
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
+df = pd.read_csv(fname_var)
+index_to_remove = df[df['stim'] == 'Picture4'].index
+df = df.drop(index_to_remove)
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
+                         ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_sentence', 
+                          'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
+filtered_df.dropna(inplace=True)
 columns_to_melt = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
-melted_df = pd.melt(filtered_df_keep[['PatientCat'] + columns_to_melt], id_vars=['PatientCat'], value_vars=columns_to_melt, var_name='wordpos', value_name='w2v')
+melted_df = pd.melt(filtered_df[['PatientCat'] + columns_to_melt], id_vars=['PatientCat'], value_vars=columns_to_melt, var_name='wordpos', value_name='w2v')
 
 # Violin plots
 g = sns.FacetGrid(melted_df, col='wordpos', height=5, aspect=1.2, sharey=False)
@@ -208,9 +224,10 @@ plt.show()
 
 
 # bar plot
-df_check = filtered_df_keep.groupby('ID')[['PatientCat','TLI_DISORG','n_sentence', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
+df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_sentence', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
 w2v = df_check.groupby('PatientCat')[['n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
 w2v = w2v.reset_index()
+w2v.drop('PatientCat', axis=1, inplace=True)
 
 ax = w2v.plot(kind='bar', figsize=(10, 6))
 ax.set_xlabel('group')
@@ -253,7 +270,7 @@ similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 for col in similarity_columns:
     group_1 = df_check[df_check['PatientCat'] == 1][col]
     group_2 = df_check[df_check['PatientCat'] == 2][col]
-    t_statistic, p_value = stats.ttest_ind(group_1, group_2)
+    t_statistic, p_value = stats.ttest_ind(group_1.values, group_2.values)
     # Alternatively, perform Mann-Whitney U test (non-parametric test)
     # u_statistic, p_value = stats.mannwhitneyu(group_1, group_2)
     print(f'word2vec similarity before word n and {col}:')
@@ -282,10 +299,48 @@ for col in similarity_columns:
     print(f'T-Statistic: {t_statistic}, P-Value: {p_value}')
     print('-------------------------')
 
-
+## --------------------------------------------------------------------
 # relation between TLI_DISORG and w2v similarity
+## --------------------------------------------------------------------
 similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 for col in similarity_columns:
     r, p_value = pearsonr(df_check.loc[df_check['PatientCat'] == 2,'TLI_DISORG'], df_check.loc[df_check['PatientCat'] == 2,col])
     print(f'correlation between TLI and similarity for {col}:'
         f'\ncorrelation {r},p value: {p_value}')
+
+
+df_high = df_check[df_check['TLI_DISORG']>=1]
+for col in similarity_columns:
+    r, p_value = pearsonr(df_high.loc[df_high['PatientCat'] == 2,'TLI_DISORG'], df_high.loc[df_high['PatientCat'] == 2,col])
+    print(f'correlation between TLI and similarity for {col}:'
+        f'\ncorrelation {r},p value: {p_value}')
+
+for col in similarity_columns:
+    plt.figure()  # Create a new figure for each plot
+    sns.scatterplot(data=df_check, x='TLI_DISORG', y=col, hue='PatientCat', palette='viridis')
+    slope, intercept = np.polyfit(df_check['TLI_DISORG'], df_check[col], 1)
+    regression_line = slope * df_check['TLI_DISORG'] + intercept
+    plt.plot(df_check['TLI_DISORG'], regression_line, color='red', label='Linear Regression')
+    plt.savefig(f'w2v_{col}_vs_TLI_DISORG.png') 
+    plt.close() 
+
+
+## --------------------------------------------------------------------
+# relation between topic measures and w2v similarity
+## --------------------------------------------------------------------
+
+similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
+for col in similarity_columns:
+    r, p_value = pearsonr(df_check.loc[df_check['PatientCat'] == 2,'entropyApproximate'], df_check.loc[df_check['PatientCat'] == 2,col])
+    print(f'correlation between entropyApproximate and similarity for {col}:'
+        f'\ncorrelation {r},p value: {p_value}')
+    
+
+for col in similarity_columns:
+    plt.figure()  # Create a new figure for each plot
+    sns.scatterplot(data=df_check, x='entropyApproximate', y=col, hue='PatientCat', palette='viridis')
+    slope, intercept = np.polyfit(df_check['entropyApproximate'], df_check[col], 1)
+    regression_line = slope * df_check['entropyApproximate'] + intercept
+    plt.plot(df_check['entropyApproximate'], regression_line, color='red', label='Linear Regression')
+    plt.savefig(f'w2v_{col}_vs_entropyApproximate.png') 
+    plt.close() 

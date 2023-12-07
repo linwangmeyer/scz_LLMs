@@ -97,7 +97,6 @@ for child_folder in child_folders:
 
 ## --------------------------------------------------------------------
 # Get data and conduct analysis: the approxiamte distribution approach
-
 window=30
 topic_entropy_app = {}
 for foldername, filenames in folder_file.items():
@@ -148,7 +147,7 @@ df.drop(columns=['ID_stim'], inplace=True)
 df = df[['ID', 'stim', 'entropyTransform']]
 fname = os.path.join(parent_folder,'transform_entropy.csv')
 df.to_csv(fname,index=False)
-
+       
 # combine data and save them together with other variables
 entropy_Values = df.groupby('ID')['entropyTransform'].mean().reset_index()
 entropy_Values['ID'] = entropy_Values['ID'].astype('int64')
@@ -157,6 +156,34 @@ fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
 df_var = pd.read_csv(fname_var)
 df_merge = df_var.merge(entropy_Values,on='ID')
 df_merge.to_csv(fname_var,index=False)
+
+
+## --------------------------------------------------------------------
+# Get dominant topic and its associated probability for each sentence
+# Get pairwise similarity between identified topics
+## --------------------------------------------------------------------
+topic_sim = {}
+for foldername, filenames in folder_file.items():
+    print(f'folder: {foldername}')
+    for filename in filenames:
+        print(f'file: {filename}')
+        fname = os.path.join(parent_folder, foldername, filename)
+        stim = read_data_fromtxt(fname)
+        domtopic, prob = topic_model.transform(stim)
+        
+        # get pairwise cosine similarity between identified topic embeddings normalized by number of sentences
+        sim_matrix = cosine_similarity(np.array(topic_model.topic_embeddings_)[domtopic,:])
+        labels = [topic_model.get_topic_info(label).Name.to_list()[0] for label in domtopic]
+        blow_index = np.tril_indices(sim_matrix.shape[0], k=-1)
+        mean_sim = np.mean(sim_matrix[blow_index])
+        topic_sim[filename.split('.')[0][6:]] = mean_sim
+df = pd.DataFrame(list(topic_sim.items()), columns=['ID_stim', 'TransformSimilarity'])
+df[['ID', 'stim']] = df['ID_stim'].str.split('_', expand=True)
+df.drop(columns=['ID_stim'], inplace=True)
+df = df[['ID', 'stim', 'TransformSimilarity']]
+df.loc[df['stim']=='Picture 1','stim'] = 'Picture1'
+fname = os.path.join(parent_folder,'transform_topic_similarity.csv')
+df.to_csv(fname,index=False)
 
 
 ## --------------------------------------------------------------------
@@ -231,6 +258,9 @@ df_app = pd.read_csv(fname)
 fname = os.path.join(parent_folder,'transform_entropy.csv')
 df_transform = pd.read_csv(fname)
 
+fname = os.path.join(parent_folder,'transform_topic_similarity.csv')
+df_transform_sim = pd.read_csv(fname)
+
 fname = os.path.join(parent_folder,'similarity_entropy.csv')
 df_sim = pd.read_csv(fname)
 
@@ -243,7 +273,7 @@ df_w2v = pd.read_csv(fname)
 fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
 df_var = pd.read_csv(fname_var)
 
-df_measures = df_app.merge(df_transform, on=['ID','stim']).merge(df_sim, on=['ID','stim']).merge(df_nsen, on=['ID','stim']).merge(df_w2v, on=['ID','stim'])
+df_measures = df_app.merge(df_transform, on=['ID','stim']).merge(df_transform_sim, on=['ID','stim']).merge(df_sim, on=['ID','stim']).merge(df_nsen, on=['ID','stim']).merge(df_w2v, on=['ID','stim'])
 
 df_merge = df_var.merge(df_measures, on='ID',how='outer')
 filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
@@ -260,13 +290,28 @@ df_goi.to_csv(fname_goi,index=False)
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
 fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
 df = pd.read_csv(fname_var)
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','entropyTransform','entropyApproximate','entropySimilarity','n_sentence']]
+index_to_remove = df[df['stim'] == 'Picture4'].index
+df = df.drop(index_to_remove)
+
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','TLI_DISORG','entropyTransform','TransformSimilarity','entropyApproximate','entropySimilarity','n_sentence']]
+filtered_df.dropna(inplace=True)
+df_ctrl = filtered_df[filtered_df['PatientCat']==1]
+df_scz = filtered_df.loc[(df['PatientCat'] == 2) & (filtered_df['TLI_DISORG']>2)]
+from scipy import stats
+t_statistic, p_value = stats.ttest_ind(df_ctrl['entropyTransform'].values, df_scz['entropyTransform'].values)
+u_statistic, p_value = stats.mannwhitneyu(df_ctrl['entropyTransform'].values, df_scz['entropyTransform'].values)
+
+
 r, p_value = pearsonr(filtered_df['PatientCat'], filtered_df['entropyTransform'])
 print(f'correlation between Patient category and Transform Entropy estimation:'
       f'\ncorrelation {r},'
       f'\np value: {p_value}')
 r, p_value = pearsonr(filtered_df['PatientCat'], filtered_df['entropyApproximate'])
 print(f'correlation between Patient category and Approximate Entropy estimation:'
+      f'\ncorrelation {r},'
+      f'\np value: {p_value}')
+r, p_value = pearsonr(filtered_df['PatientCat'], filtered_df['TransformSimilarity'])
+print(f'correlation between Patient category and Approximate Topic Similarity estimation:'
       f'\ncorrelation {r},'
       f'\np value: {p_value}')
 r, p_value = pearsonr(filtered_df['PatientCat'], filtered_df['entropySimilarity'])
@@ -327,9 +372,9 @@ plt.show()
 
 ## --------------------------------------------------------------------
 # Relationship between LTI and entropy
-filtered_df = df.loc[df['PatientCat'] == 2,['PatientCat','TLI_DISORG','stim','entropyApproximate','entropySimilarity','entropyTransform']]
+filtered_df = df.loc[df['PatientCat'] == 2,['PatientCat','TLI_DISORG','stim','entropyApproximate','entropySimilarity','entropyTransform','TransformSimilarity']]
 #filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','stim','TLI_DISORG','entropyApproximate','entropySimilarity']]
-filtered_df_keep = filtered_df.dropna(subset=['TLI_DISORG', 'entropyApproximate','entropySimilarity','entropyTransform'])
+filtered_df_keep = filtered_df.dropna(subset=['TLI_DISORG', 'entropyApproximate','entropySimilarity','entropyTransform','TransformSimilarity'])
 r, p_value = pearsonr(filtered_df_keep['TLI_DISORG'], filtered_df_keep['entropyApproximate'])
 print(f'correlation between TLI and Approximate Entropy estimation:'
       f'\ncorrelation {r},'
@@ -378,6 +423,22 @@ plot_path = os.path.join('/'.join(parent_folder.split('/')[:-2]),'plots')
 plt.savefig(os.path.join(plot_path,'scatter_LTI_Entropy'))
 plt.show()
 
+
+## --------------------------------------------------------------------
+# Relationship between panss and entropy
+filtered_df = df.loc[df['PatientCat'] == 2,['PatientCat','PANSS Pos','stim','entropyApproximate','entropySimilarity','entropyTransform','TransformSimilarity']]
+#filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','stim','PANSS Pos','entropyApproximate','entropySimilarity']]
+filtered_df_keep = filtered_df.dropna(subset=['PANSS Pos', 'entropyApproximate','entropySimilarity','entropyTransform','TransformSimilarity'])
+r, p_value = pearsonr(filtered_df_keep['PANSS Pos'], filtered_df_keep['entropyApproximate'])
+print(f'correlation between TLI and Approximate Entropy estimation:'
+      f'\ncorrelation {r},'
+      f'\np value: {p_value}')
+sns.scatterplot(data=filtered_df_keep, x='PANSS Pos', y='entropyApproximate')
+
+r, p_value = pearsonr(filtered_df_keep['PatientCat'], filtered_df_keep['entropyApproximate'])
+print(f'correlation between Patient category and Approximate Entropy estimation:'
+      f'\ncorrelation {r},'
+      f'\np value: {p_value}')
 
 ## --------------------------------------------------------------------
 # Regression analysis: modeling data

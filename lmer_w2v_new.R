@@ -228,6 +228,12 @@ summary(m_grand4)
 m_grand5 = lmer(w2v_mean ~ wordpos + (1 | ID) + nsen_mean + TLI_DISORG, data = df4) 
 summary(m_grand5)
 
+m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nsen_mean, data = df4) 
+anova(m_grand5,m_grand6)
+
+summary(m_grand6)
+anova(m_grand6)
+
 #----
 df4 <- df4 %>%
   mutate(
@@ -335,4 +341,22 @@ summary(m4)
 
 contrasts(df4$wordpos) <- contr.sdif(5, contrasts = TRUE, sparse = FALSE)
 contrasts(df4$PatientCat) <- c(-.5, .5)
+
+
+#---------------------------------------------#
+# run models: average across stim items
+# intercept being wordpos average
+#---------------------------------------------#
+myMat <- solve(t(matrix(c(1/5,1/5,1/5,1/5,1/5,-1,1,0,0,0,-1,0,1,0,0,-1,0,0,1,0,-1,0,0,0,1), nrow =5, ncol = 5))) ## matrix for word_type
+design_matrix <- hypr()
+cmat(design_matrix, add_intercept = FALSE) <- myMat
+design_matrix
+
+contrasts(df4$wordpos) <- myMat
+contrasts(df4$PatientCat) <- c(-.5, .5)
+
+m5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nsen_mean, data = df4)
+summary(m5)
+anova(m5)
+
 

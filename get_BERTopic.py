@@ -383,6 +383,8 @@ sns.scatterplot(data=filtered_df_keep, x='TLI_DISORG', y='entropyApproximate')
 slope, intercept = np.polyfit(filtered_df_keep['TLI_DISORG'], filtered_df_keep['entropyApproximate'], 1)
 regression_line = slope * filtered_df_keep['TLI_DISORG'] + intercept
 plt.plot(filtered_df_keep['TLI_DISORG'], regression_line, color='red', label='Linear Regression')
+plt.savefig('BERT_scatter_patients.eps', format='eps', bbox_inches='tight')
+plt.show()
 
 # Scatter plot, color coding patient group
 filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','stim','TLI_DISORG','entropyTransform','entropyApproximate','entropySimilarity']]

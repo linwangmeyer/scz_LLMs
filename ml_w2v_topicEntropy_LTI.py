@@ -19,7 +19,7 @@ from sklearn.metrics import roc_curve, roc_auc_score
 import joblib
 import os
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from sklearn.metrics import r2_score
 
 # ------------------------------------------
@@ -49,8 +49,8 @@ df_avg = filtered_df.groupby('ID')[['PatientCat','TLI_DISORG','n_sentence','entr
 df_avg.isna().sum()
 scz = (df_avg['PatientCat']==1).sum()
 hc = (df_avg['PatientCat']==2).sum()
-print(f'number of patients: {scz}')
-print(f'number of healthy controls: {hc}')
+print(f'number of healthy controls: {scz}')
+print(f'number of patients: {hc}')
 
 # visualize correlation matrix
 df_roi = df_avg[['entropyApproximate','TLI_DISORG','n_1','n_2','n_3','n_4','n_5']]
@@ -104,6 +104,8 @@ print(f'Mean Squared Error: {mse}')
 r2 = r2_score(y_test, y_pred)
 print(f'R-squared Score: {r2}')
 
+mae = mean_absolute_error(y_test, y_pred)
+print(f'Mean Absolute Error: {mae}')
 
 # ------------------------------------------
 # linear regression: baseline
@@ -133,7 +135,8 @@ print(f'Mean Squared Error: {mse}')
 r2 = r2_score(y_test, y_pred)
 print(f'R-squared Score: {r2}')
 
-
+mae = mean_absolute_error(y_test, y_pred)
+print(f'Mean Absolute Error: {mae}')
 
 
 # ------------------------------------------

@@ -64,22 +64,22 @@ filtered_df.dropna(inplace=True)
 df_avg = filtered_df.groupby('ID')[['PatientCat','PANSS Pos','TLI_DISORG','n_sentence','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
 '''
 
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID', 'PatientCat', 'TLI_DISORG', 'stim', 'n_sentence', 
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID', 'PatientCat', 'stim', 'n_sentence', 
                           'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 filtered_df.dropna(inplace=True)
-df_avg = filtered_df.groupby('ID')[['PatientCat','TLI_DISORG','n_sentence','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
+df_avg = filtered_df.groupby('ID')[['PatientCat','n_sentence','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
 
 # load data from Tori
 df_gpt = pd.read_csv(parent_folder+'SczProd_gpt3_data_clean.csv')
 
 # groupby subject
-columns_to_keep = ['Subject'] + [f'cloze_{i}wContext_gpt3' for i in range(2, 51)] + ['Utterance_Length_Wrds']
+columns_to_keep = ['Subject','TLI_DISORG'] + [f'cloze_{i}wContext_gpt3' for i in range(2, 52)] + ['Utterance_Length_Wrds']
 df_selected = df_gpt[columns_to_keep]
 df_gpt_avg = df_selected.groupby(['Subject']).mean()
 
 # combine data
-df_ml = df_avg.merge(df_gpt_avg,left_on='ID',right_on='Subject')
-df_ml.dropna(inplace=True)
+df_ml = df_avg[['PatientCat','ID']].merge(df_gpt_avg,left_on='ID',right_on='Subject')
+df_ml.interpolate(inplace=True)
 
 # ------------------------------------------
 # check and visualize data
@@ -122,7 +122,7 @@ plt.show()
 # pca on gpt-values: select the top n components
 # --------------------------------------------------
 # only use gpt-cloze data
-columns_roi = [f'cloze_{i}wContext_gpt3' for i in range(2, 51)]
+columns_roi = [f'cloze_{i}wContext_gpt3' for i in range(2, 52)]
 df_X = df_ml[columns_roi]
 df_ml['PatientCat'] = df_ml['PatientCat'].map({1.0: 0, 2.0: 1})
 df_y = df_ml['PatientCat']
@@ -156,6 +156,23 @@ plt.scatter(pca_features[:, 0], pca_features[:, 1], c=df_y, cmap='viridis', mark
 plt.xlabel('Principal Component 1')
 plt.ylabel('Principal Component 2')
 plt.title('2D Scatter Plot of Transformed Data')
+plt.show()
+
+# --------------------------------------------------
+# pca top 1 component vs. LIT relationship
+# --------------------------------------------------
+pca_c1 = pca_features[:, 0]
+LTI = df_ml['TLI_DISORG'].values
+r, p_value = pearsonr(pca_c1, LTI)
+print(f'correlation between TLI and the first gpt component estimation:'
+      f'\ncorrelation {r},'
+      f'\np value: {p_value}')
+df_plot = pd.DataFrame({'PCA':pca_c1,'TLI':LTI})
+sns.scatterplot(data=df_plot, x='TLI', y='PCA')
+slope, intercept = np.polyfit(df_plot['TLI'], df_plot['PCA'], 1)
+regression_line = slope * df_plot['TLI'] + intercept
+plt.plot(df_plot['TLI'], regression_line, color='red', label='Linear Regression')
+plt.savefig('gptC1_TLI.eps', format='eps', bbox_inches='tight')
 plt.show()
 
 
@@ -268,8 +285,8 @@ print(f'R-squared Score: {r2}')
 # logistic regression
 # ------------------------------------------
 # Split pre-processed data
-df_ml = df_avg.merge(df_gpt_avg,left_on='ID',right_on='Subject')
-df_ml.dropna(inplace=True)
+df_ml = df_avg[['PatientCat','ID']].merge(df_gpt_avg,left_on='ID',right_on='Subject')
+df_ml.interpolate(inplace=True)
 df_ml['PatientCat'] = df_ml['PatientCat'].map({1.0: 0, 2.0: 1})
 
 columns_roi = [f'cloze_{i}wContext_gpt3' for i in range(2, 51)]
@@ -338,6 +355,7 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('Receiver Operating Characteristic (ROC) Curve')
 plt.legend(loc='lower right')
+plt.savefig('GPT_PCA_AUC.eps', format='eps', bbox_inches='tight')
 plt.show()
 
 # evaluate model performance

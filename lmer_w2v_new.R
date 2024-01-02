@@ -78,8 +78,20 @@ ggplot(summary_data, aes(x = wordpos, y = mean_w2v, color = factor(PatientCat), 
   scale_shape_manual(values = c(16, 17), labels = c("controls", "scz")) +
   scale_fill_manual(values = c("blue", "red"), labels = c("controls", "scz")) +
   theme_minimal()
+ggsave("your_plot_filename.eps", device = "eps", width = 7, height = 5)
+# Your existing code for creating the plot without semi-transparency
+ggplot(summary_data, aes(x = wordpos, y = mean_w2v, color = factor(PatientCat), group = PatientCat)) +
+  geom_line() +
+  geom_point(aes(shape = factor(PatientCat)), size = 3) +
+  geom_ribbon(aes(ymin = ci_lower, ymax = ci_upper, fill = factor(PatientCat)), color = NA) +  # Removed alpha = 0.2
+  labs(x = "Word Position", y = "Mean w2v Value") +
+  scale_color_manual(values = c("blue", "red"), labels = c("controls", "scz")) +
+  scale_shape_manual(values = c(16, 17), labels = c("controls", "scz")) +
+  scale_fill_manual(values = c("blue", "red"), labels = c("controls", "scz")) +
+  theme_minimal()
 
-
+# Save the plot as an EPS file
+ggsave("your_plot_filename.eps", device = "eps", width = 7, height = 5)
 ################Report this one################
 #---------------------------------------------#
 # run models: average across stim items
@@ -233,6 +245,7 @@ anova(m_grand5,m_grand6)
 
 summary(m_grand6)
 anova(m_grand6)
+
 
 #----
 df4 <- df4 %>%

@@ -21,13 +21,13 @@ setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/sti
 #prepare data: include all variables
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','TLI_DISORG','n_sentence','stim','n_1','n_2','n_3','n_4','n_5')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
 df2 <- df %>%
   pivot_longer(cols = c(n_1, n_2, n_3, n_4, n_5), names_to = "wordpos", values_to = "w2v")
 
-df3 <- df2 %>% select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, n_sentence, stim, wordpos, w2v) %>% 
+df3 <- df2 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, n_sentence, stim, wordpos, w2v) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          stim = as.factor(stim),
@@ -37,29 +37,20 @@ df3 <- df2 %>% select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, n_sente
 
 # Plot all data points
 df3 %>% 
-  ggplot(aes(x = PatientCat, y = mean_w2v, col = PatientCat)) +
+  ggplot(aes(x = PatientCat, y = w2v, col = PatientCat)) +
   geom_point() + 
   facet_grid(cols = vars(wordpos)) + 
   stat_summary(fun = mean, na.rm = TRUE, 
                geom = "point", shape = "diamond", 
                color = "black", size = 5)
 
-# get mean and standard error values
-summary_data <- df3 %>%
-  group_by(wordpos, PatientCat) %>%
-  summarise(mean_w2v = mean(w2v, na.rm = TRUE),
-            se_w2v = sd(w2v, na.rm = TRUE) / sqrt(n()))
-
-# Create the line plot with standard error bars
+# get mean and standard error values with standard error bars
 summary_data <- df3 %>%
   group_by(wordpos, PatientCat) %>%
   summarise(mean_w2v = mean(w2v, na.rm = TRUE),
             sd_w2v = sd(w2v, na.rm = TRUE),
+            se_w2v = sd(w2v, na.rm = TRUE) / sqrt(n()),
             n = n())
-
-# Calculate standard error
-summary_data <- summary_data %>%
-  mutate(se_w2v = sd_w2v / sqrt(n))
 
 # Calculate 95% confidence interval
 confidence_level <- 0.95
@@ -78,7 +69,8 @@ ggplot(summary_data, aes(x = wordpos, y = mean_w2v, color = factor(PatientCat), 
   scale_shape_manual(values = c(16, 17), labels = c("controls", "scz")) +
   scale_fill_manual(values = c("blue", "red"), labels = c("controls", "scz")) +
   theme_minimal()
-ggsave("your_plot_filename.eps", device = "eps", width = 7, height = 5)
+ggsave("w2v_2groups.eps", device = "eps", width = 7, height = 5)
+
 # Your existing code for creating the plot without semi-transparency
 ggplot(summary_data, aes(x = wordpos, y = mean_w2v, color = factor(PatientCat), group = PatientCat)) +
   geom_line() +
@@ -91,35 +83,55 @@ ggplot(summary_data, aes(x = wordpos, y = mean_w2v, color = factor(PatientCat), 
   theme_minimal()
 
 # Save the plot as an EPS file
-ggsave("your_plot_filename.eps", device = "eps", width = 7, height = 5)
+ggsave("w2v_groups_noalpha.eps", device = "eps", width = 7, height = 5)
+
+
 ################Report this one################
 #---------------------------------------------#
 # run models: average across stim items
 # individual reference level
-# include all control predictors
+# selecting different subsets of participants
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','TLI_DISORG','n_sentence','stim','n_1','n_2','n_3','n_4','n_5')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
+df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
+
+# calculate number of participants in each group
+df9 <- df %>%
+  group_by(ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+sum(df9$PatientCat==1)
+sum(df9$PatientCat==2)
+df9 <- df9[!is.na(df9$TLI_DISORG),]
+
+# convert the data to a long format
 df2 <- df %>%
   pivot_longer(cols = c(n_1, n_2, n_3, n_4, n_5), names_to = "wordpos", values_to = "w2v")
 
+# get mean values across stimuli
 df3 <- df2 %>%
   group_by(ID, wordpos) %>%
   summarise(w2v_mean = mean(as.numeric(w2v), na.rm = TRUE),
-            nsen_mean = mean(as.numeric(n_sentence), na.rm = TRUE)) %>%
+            nsen_mean = mean(as.numeric(n_sentence), na.rm = TRUE),
+            nword_mean = mean(as.numeric(num_all_words), na.rm = TRUE),
+            ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
+            nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE)) %>%
   ungroup()
 
 # Extracting other columns from the original dataframe for df3
 other_columns <- df2 %>%
-  select(ID, Gender, AgeScan1, SES, PatientCat, PANSS.Pos, TLI_DISORG) %>%
+  select(ID, Gender, AgeScan1, SES, PANSS.Pos, PatientCat, TLI_DISORG, DSST, Trails.B, Category.Fluency..animals.) %>%
   distinct()
 
 # Merging all the columns together based on 'ID'
 df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
 
-df4 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, TLI_DISORG, nsen_mean, wordpos, w2v_mean) %>% 
+
+#----------------------------
+# get data containing all control demographic variables excluding SES: 34 HC + 70 FEP
+df4 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          Gender = as.factor(Gender),
@@ -127,128 +139,135 @@ df4 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, TLI_DISO
   droplevels() %>%
   na.omit()
 
-id_summary <- table(df4$ID)
-valid_levels <- names(id_summary[id_summary > 0])
-df4 <- droplevels(df4[df4$ID %in% valid_levels, ])
-
-#---------- group effect
-# intercept being healthy controls, and n_1
-m_grand1 = lmer(w2v_mean ~ wordpos + (1 | ID) + Gender + AgeScan1 + SES, data = df4) 
-m_grand2 = lmer(w2v_mean ~ wordpos + PatientCat + (1 | ID) + Gender + AgeScan1 + SES, data = df4) 
-anova(m_grand1,m_grand2)
-
-m_grand3 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + Gender + AgeScan1 + SES, data = df4) 
-anova(m_grand3,m_grand2)
-summary(m_grand2)
-summary(m_grand3)
-
-# for each word position, group effect
-emm <- emmeans(m_grand3, pairwise ~ PatientCat | wordpos, pbkrtest.limit = 14060)
-pairs(emm, adjust = "tukey")
-
-# for each group, the word position effect
-emm <- emmeans(m_grand3, pairwise ~ wordpos | PatientCat, pbkrtest.limit = 14060)
-pairs(emm, adjust = "tukey")
-
-#---------- continuous effect
-m_grand4 = lmer(w2v_mean ~ wordpos + (1 | ID) + Gender + AgeScan1 + SES + nsen_mean + PANSS.Pos, data = df4) 
-summary(m_grand4)
-
-m_grand5 = lmer(w2v_mean ~ wordpos + (1 | ID) + Gender + AgeScan1 + SES + nsen_mean + TLI_DISORG, data = df4) 
-summary(m_grand5)
-
-#----
-df4 <- df4 %>%
-  mutate(
-    PANSS_Pos_Z = scale(PANSS.Pos, center = TRUE, scale = TRUE),
-    TLI_DISORG_Z = scale(TLI_DISORG, center = TRUE, scale = TRUE)
-  ) %>%
-  # Calculate comScore by computing the row-wise mean of PANSS_Pos_Z and TLI_DISORG_Z
-  mutate(
-    comScore = rowMeans(select(., c("PANSS_Pos_Z", "TLI_DISORG_Z")), na.rm = TRUE)
-  )
-
-m_grand6 = lmer(w2v_mean ~ wordpos + (1 | ID) + Gender + AgeScan1 + SES + nsen_mean + comScore, data = df4) 
-summary(m_grand6)
-
-emm <- emmeans(m_grand6, pairwise ~ wordpos, pbkrtest.limit = 14060)
-pairs(emm, adjust = "tukey")
+# calculate number of participants in each group
+df9 <- df4 %>%
+  pivot_wider(names_from = wordpos, values_from = w2v_mean)
+sum(df9$PatientCat==1) #HC: 34
+sum(df9$PatientCat==2) #FEP: 70
 
 
-
-
-#---------------------------------------------#
-# run models: average across stim items
-# individual reference level
-# include only critical predictors (more data)
-#---------------------------------------------#
-data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','PANSS.Pos','TLI_DISORG','n_sentence','stim','n_1','n_2','n_3','n_4','n_5')]
-df <- df[df$stim != 'Picture4', ]
-df <- df[!is.na(df$n_1),]
-df2 <- df %>%
-  pivot_longer(cols = c(n_1, n_2, n_3, n_4, n_5), names_to = "wordpos", values_to = "w2v")
-
-df3 <- df2 %>%
-  group_by(ID, wordpos) %>%
-  summarise(w2v_mean = mean(as.numeric(w2v), na.rm = TRUE),
-            nsen_mean = mean(as.numeric(n_sentence), na.rm = TRUE)) %>%
-  ungroup()
-
-# Extracting other columns from the original dataframe for df3
-other_columns <- df2 %>%
-  select(ID, PatientCat, PANSS.Pos, TLI_DISORG) %>%
-  distinct()
-
-# Merging all the columns together based on 'ID'
-df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
-
-
-df4 <- df3 %>% select(ID, PatientCat, PANSS.Pos, TLI_DISORG, nsen_mean, wordpos, w2v_mean) %>% 
+#----------------------------
+# get data containing all control demographic variables including SES: 33 HC + 60 FEP
+df5 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
+         Gender = as.factor(Gender),
          wordpos = as.factor(wordpos)) %>%
   droplevels() %>%
   na.omit()
 
+# calculate number of participants in each group
+df9 <- df5 %>%
+  pivot_wider(names_from = wordpos, values_from = w2v_mean)
+sum(df9$PatientCat==1) #HC: 33
+sum(df9$PatientCat==2) #FEP: 60
 
-#----------
-# intercept being healthy controls and n_1
-m_grand1 = lmer(w2v_mean ~ wordpos + (1 | ID), data = df4) 
-m_grand2 = lmer(w2v_mean ~ wordpos + PatientCat + (1 | ID), data = df4) 
-anova(m_grand1,m_grand2)
+#----------------------------
+# get data containing all control variables, SES + cognitive functions: 29 HC + 42 FEP
+df6 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+  mutate(ID = as.factor(ID),
+         PatientCat = as.factor(PatientCat),
+         Gender = as.factor(Gender),
+         wordpos = as.factor(wordpos)) %>%
+  droplevels() %>%
+  na.omit()
 
-m_grand3 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID), data = df4) 
-anova(m_grand3,m_grand2)
+# calculate number of participants in each group
+df9 <- df6 %>%
+  pivot_wider(names_from = wordpos, values_from = w2v_mean)
+sum(df9$PatientCat==1) #HC: 29
+sum(df9$PatientCat==2) #FEP: 42
 
-#for PatientCat=1 healthy group:
-summary(m_grand2)
-summary(m_grand3)
 
-# for each word position, group effect
-emm <- emmeans(m_grand3, pairwise ~ PatientCat | wordpos, pbkrtest.limit = 14060)
-pairs(emm, adjust = "tukey")
+#----------------------------
+# get data containing all variables, including SES, PANSS.Pos and cognitive functions: 24 HC + 40 FEP
+df7 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+  mutate(ID = as.factor(ID),
+         PatientCat = as.factor(PatientCat),
+         Gender = as.factor(Gender),
+         wordpos = as.factor(wordpos)) %>%
+  droplevels() %>%
+  na.omit()
 
-# for each group, the word position effect
-emm <- emmeans(m_grand3, pairwise ~ wordpos | PatientCat, pbkrtest.limit = 14060)
-pairs(emm, adjust = "tukey")
+# calculate number of participants in each group
+df9 <- df7 %>%
+  pivot_wider(names_from = wordpos, values_from = w2v_mean)
+sum(df9$PatientCat==1) #HC: 24
+sum(df9$PatientCat==2) #FEP: 40
 
-#---------- continuous effect
-m_grand4 = lmer(w2v_mean ~ wordpos + (1 | ID) + nsen_mean + PANSS.Pos, data = df4) 
+
+#------------------------------
+# model continuous effect
+#------------------------------
+# all participants
+m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
-m_grand5 = lmer(w2v_mean ~ wordpos + (1 | ID) + nsen_mean + TLI_DISORG, data = df4) 
+m_grand4b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nsen_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4b)
+
+m_grand4c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1, data = df4) 
+summary(m_grand4c)
+
+# only participants with SES
+m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
 summary(m_grand5)
 
-m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nsen_mean, data = df4) 
-anova(m_grand5,m_grand6)
+m_grand5b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + nsen_mean, data = df5) 
+summary(m_grand5b)
 
+m_grand5c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES, data = df5) 
+summary(m_grand5c)
+
+# only participants with both SES and cognitive measures
+m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
 summary(m_grand6)
-anova(m_grand6)
+
+m_grand6b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + nsen_mean, data = df6) 
+summary(m_grand6b)
+
+m_grand6c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1, data = df6) 
+summary(m_grand6c)
+
+# only participants with SES, cognitive measures and PANSS.Pos
+m_grand7 = lmer(w2v_mean ~ wordpos*PANSS.Pos + (1 | ID) + SES + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df7) 
+summary(m_grand7)
+
+m_grand7b = lmer(w2v_mean ~ wordpos*PANSS.Pos + (1 | ID) + SES + Gender + AgeScan1 + nsen_mean, data = df7) 
+summary(m_grand7b)
 
 
-#----
-df4 <- df4 %>%
+#---------- group effect
+# intercept being healthy controls, and n_1
+# all participants
+m_grand1 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand1)
+
+m_grand1b = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + nsen_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand1b)
+
+# only participants with SES
+m_grand2 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + ncontent_mean + nrepeated_mean, data = df5) 
+summary(m_grand2)
+
+m_grand2b = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df5) 
+summary(m_grand2b)
+
+# only participants with both SES and cognitive measures
+m_grand3 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + SES + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
+summary(m_grand3)
+
+m_grand3b = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + SES + Gender + AgeScan1 + nsen_mean, data = df6) 
+summary(m_grand3b)
+
+
+# for each word position, check group effect
+emm <- emmeans(m_grand1b, pairwise ~ PatientCat | wordpos, pbkrtest.limit = 14060)
+pairs(emm, adjust = "tukey")
+
+
+#---- combine variables
+df8 <- df3 %>%
   mutate(
     PANSS_Pos_Z = scale(PANSS.Pos, center = TRUE, scale = TRUE),
     TLI_DISORG_Z = scale(TLI_DISORG, center = TRUE, scale = TRUE)
@@ -258,8 +277,12 @@ df4 <- df4 %>%
     comScore = rowMeans(select(., c("PANSS_Pos_Z", "TLI_DISORG_Z")), na.rm = TRUE)
   )
 
-m_grand6 = lmer(w2v_mean ~ wordpos + (1 | ID) + nsen_mean + comScore, data = df4) 
-summary(m_grand6)
+m_grand8 = lmer(w2v_mean ~ wordpos*comScore + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df8) 
+summary(m_grand8)
+
+m_grand8b = lmer(w2v_mean ~ wordpos*comScore  + (1 | ID) + Gender + AgeScan1 + SES + nsen_mean, data = df8) 
+summary(m_grand8b)
+
 
 
 

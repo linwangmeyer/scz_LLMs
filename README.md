@@ -6,7 +6,7 @@ We transcribed and analyzed speech data from 70 treatment-naive, first-episode p
 
 We used BERTopic and Word2Vec to probe message-level and meaning-level representations of the picture descriptions. We also visualized the results and conducted statistical tests to evaluate how participant group, positive thought disorder, sentence level and other variables affect these measures.
 
-## BERTopic (’get_BERTopic.py’)
+## BERTopic (’01_get_BERTopic.py’)
 
 We used a pre-trained BERTopic model with 2376 common topics discussed on Wikipedia to probe higher-level topic representations of all picture descriptions. We obtained the topic distributions and quantified the entropy of the topic distribution for each picture description. There are three methods available (see below). We used the first method because it captures moment-by-moment topics in the descriptions.
 
@@ -26,7 +26,7 @@ We found that, although there were no differences in the topic entropy between s
 
 This method merely calculates the embeddings of its inputs and compares that with the topic embeddings, where the topic embeddings are the average embeddings of all documents in the topic. The most similar topic embeddings are then selected. This is a bit more rough and is typically not intended for finding which topic a document belongs to.
 
-## Word2Vec (’get_word2vec.py’)
+## Word2Vec (’02_get_word2vec.py’)
 
 We also used a pre-trained Word2Vec model with 300-dimensional word embeddings to probe lower-level meaning representations. We calculated cosine similarity between word pairs, focusing on the similarity between a word and its three preceding words (e.g., n & n-1, n & n-2, n & n-3, n & n-4, n& n-5) within each speech sample.
 

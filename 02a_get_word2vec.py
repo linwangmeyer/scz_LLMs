@@ -12,7 +12,6 @@ from matplotlib import pyplot as plt
 import gensim.downloader as api
 import seaborn as sns
 from scipy.stats import pearsonr
-sns.set(style="whitegrid")
 
 model = api.load("word2vec-google-news-300")
 from scipy.spatial.distance import pdist
@@ -91,16 +90,12 @@ def get_word2vec(content_words):
     content_words = [word for word in content_words if word not in missing_words]
     
     similarities = []
-    for i in range(9, len(content_words)):
+    for i in range(5, len(content_words)):
         word_n_minus_1 = content_words[i - 1]
         word_n_minus_2 = content_words[i - 2]
         word_n_minus_3 = content_words[i - 3]
         word_n_minus_4 = content_words[i - 4]
         word_n_minus_5 = content_words[i - 5]
-        word_n_minus_6 = content_words[i - 6]
-        word_n_minus_7 = content_words[i - 7]
-        word_n_minus_8 = content_words[i - 8]
-        word_n_minus_9 = content_words[i - 9]
         word_n = content_words[i]
         
         similarity_n_1 = model.similarity(word_n_minus_1, word_n)
@@ -108,13 +103,9 @@ def get_word2vec(content_words):
         similarity_n_3 = model.similarity(word_n_minus_3, word_n)
         similarity_n_4 = model.similarity(word_n_minus_4, word_n)
         similarity_n_5 = model.similarity(word_n_minus_5, word_n)
-        similarity_n_6 = model.similarity(word_n_minus_6, word_n)
-        similarity_n_7 = model.similarity(word_n_minus_7, word_n)
-        similarity_n_8 = model.similarity(word_n_minus_8, word_n)
-        similarity_n_9 = model.similarity(word_n_minus_9, word_n)
         
-        similarities.append([similarity_n_1, similarity_n_2, similarity_n_3, similarity_n_4, similarity_n_5, similarity_n_6, similarity_n_7, similarity_n_8, similarity_n_9])
-    columns = ['similarity_n_1', 'similarity_n_2', 'similarity_n_3', 'similarity_n_4', 'similarity_n_5', 'similarity_n_6', 'similarity_n_7', 'similarity_n_8', 'similarity_n_9']
+        similarities.append([similarity_n_1, similarity_n_2, similarity_n_3, similarity_n_4, similarity_n_5])
+    columns = ['similarity_n_1', 'similarity_n_2', 'similarity_n_3', 'similarity_n_4', 'similarity_n_5']
     similarity_df = pd.DataFrame(similarities, columns=columns)
     return similarity_df, missing_words
 
@@ -175,35 +166,31 @@ for foldername, filenames in folder_file.items():
         id_stim, similarity_values = process_file(parent_folder, foldername, filename)
         word2vec_similarity[id_stim] = similarity_values
 result_data = [(id_stim, *similarity_values) for id_stim, similarity_values in word2vec_similarity.items()]
-columns = ['ID_stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']
+columns = ['ID_stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 result_df = pd.DataFrame(result_data, columns=columns)
 result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
-result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
 result_df.drop(columns=['ID_stim'], inplace=True)
-result_df = result_df[['ID', 'stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']]
+result_df = result_df[['ID', 'stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'word2vec_n5above.csv')
+fname = os.path.join(parent_folder,'word2vec.csv')
 result_df.to_csv(fname,index=False)
 
 ## --------------------------------------------------------------------
 # Load results and statistical tests
 ## --------------------------------------------------------------------
-fname = os.path.join(parent_folder,'word2vec_n5above.csv')
+fname = os.path.join(parent_folder,'word2vec.csv')
 df_w2v = pd.read_csv(fname)
-
 fname_var = os.path.join(parent_folder,'TOPSY_all.csv') #containing topic measures
 df_var = pd.read_csv(fname_var)
-columns_to_remove = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
-df_new = df_var.drop(columns=columns_to_remove)
 
-df_merge = df_new.merge(df_w2v, on=['ID','stim'],how='outer')
+df_merge = df_var.merge(df_w2v, on=['ID','stim'],how='outer')
 filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
 
-fname_all = os.path.join(parent_folder,'TOPSY_all_new.csv')
+fname_all = os.path.join(parent_folder,'TOPSY_all.csv')
 filtered_df.to_csv(fname_all,index=False)
 
 df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_new.csv')
+fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
 df_goi.to_csv(fname_goi,index=False)
 
 
@@ -212,15 +199,15 @@ df_goi.to_csv(fname_goi,index=False)
 ## --------------------------------------------------------------------
 # Compare between two groups
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_new.csv')
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
 filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
                          ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_sentence', 
-                          'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']]
+                          'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 filtered_df.dropna(inplace=True)
-columns_to_melt = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']
+columns_to_melt = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 melted_df = pd.melt(filtered_df[['PatientCat'] + columns_to_melt], id_vars=['PatientCat'], value_vars=columns_to_melt, var_name='wordpos', value_name='w2v')
 
 # Violin plots
@@ -235,8 +222,8 @@ plt.show()
 
 
 # bar plot
-df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_sentence', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']].mean()
-w2v = df_check.groupby('PatientCat')[['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']].mean()
+df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_sentence', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
+w2v = df_check.groupby('PatientCat')[['n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
 w2v = w2v.reset_index()
 w2v.drop('PatientCat', axis=1, inplace=True)
 
@@ -253,9 +240,9 @@ plt.show()
 
 
 # box plot
-columns_to_compare = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']
+columns_to_compare = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 
-melted_df = pd.melt(df_check[['PatientCat','n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']], id_vars=['PatientCat'], value_vars=['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9'],
+melted_df = pd.melt(df_check[['PatientCat','n_1', 'n_2', 'n_3', 'n_4', 'n_5']], id_vars=['PatientCat'], value_vars=['n_1', 'n_2', 'n_3', 'n_4', 'n_5'],
                     var_name='Similarity', value_name='Value')
 
 plt.figure(figsize=(12, 6))  # Adjust the figure size as needed
@@ -277,7 +264,7 @@ plt.show()
 ## --------------------------------------------------------------------
 from scipy import stats
 # for each position, test group differences
-similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']
+similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 for col in similarity_columns:
     group_1 = df_check[df_check['PatientCat'] == 1][col]
     group_2 = df_check[df_check['PatientCat'] == 2][col]
@@ -313,7 +300,7 @@ for col in similarity_columns:
 ## --------------------------------------------------------------------
 # relation between TLI_DISORG and w2v similarity
 ## --------------------------------------------------------------------
-similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']
+similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 for col in similarity_columns:
     r, p_value = pearsonr(df_check.loc[df_check['PatientCat'] == 2,'TLI_DISORG'], df_check.loc[df_check['PatientCat'] == 2,col])
     print(f'correlation between TLI and similarity for {col}:'
@@ -340,7 +327,7 @@ for col in similarity_columns:
 # relation between topic measures and w2v similarity
 ## --------------------------------------------------------------------
 
-similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'n_6', 'n_7', 'n_8', 'n_9']
+similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
 for col in similarity_columns:
     r, p_value = pearsonr(df_check.loc[df_check['PatientCat'] == 2,'entropyApproximate'], df_check.loc[df_check['PatientCat'] == 2,col])
     print(f'correlation between entropyApproximate and similarity for {col}:'

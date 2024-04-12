@@ -52,7 +52,7 @@ std_values.transpose()
 df_stat[['PatientCat','Gender']].groupby(['PatientCat','Gender']).size()
 #PatientCat  Gender
 #1.0         1.0       22
-             2.0       12
+#2.0       12
 #2.0         1.0       56
 #            2.0       14
 

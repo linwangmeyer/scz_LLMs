@@ -1,4 +1,5 @@
 # Get word2vec semantic similarity for speech output
+# remove repeated content words within a window of n=5
 import json
 import pandas as pd
 import numpy as np

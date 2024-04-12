@@ -124,6 +124,9 @@ summary(m_grand4b)
 m_grand4c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
+m_grand4d = lm(topic_mean ~ nword_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4d)
+
 # only participants with SES
 m_grand5 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5)

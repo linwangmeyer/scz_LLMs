@@ -96,7 +96,6 @@ def count_repetition(word_list, window_size):
         if word in window and len(window) > 1:
             word_with_repeated_counts[word] += 1
     return word_with_repeated_counts
-
     
 ## --------------------------------------------------------------------
 # Get data file names

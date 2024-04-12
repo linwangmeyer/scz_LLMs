@@ -209,6 +209,9 @@ summary(m_grand4b)
 m_grand4c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
+m_grand4d = lm(TLI_DISORG ~  ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4d)
+
 # only participants with SES
 m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
 summary(m_grand5)

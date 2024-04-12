@@ -128,6 +128,45 @@ other_columns <- df2 %>%
 # Merging all the columns together based on 'ID'
 df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
 
+#--------------------------------------------------------
+# For preprocesed content words: remove repeated words
+#--------------------------------------------------------
+data <- read.csv(file = 'TOPSY_TwoGroups.csv')
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','stim','rmRep_n_1','rmRep_n_2','rmRep_n_3','rmRep_n_4','rmRep_n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+df <- df[df$stim != 'Picture4', ]
+df <- df[!is.na(df$rmRep_n_1),]
+df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
+
+# calculate number of participants in each group
+df9 <- df %>%
+  group_by(ID) %>%
+  summarise_all(mean, na.rm = TRUE)
+sum(df9$PatientCat==1)
+sum(df9$PatientCat==2)
+df9 <- df9[!is.na(df9$TLI_DISORG),]
+
+# convert the data to a long format
+df2 <- df %>%
+  pivot_longer(cols = c(rmRep_n_1, rmRep_n_2, rmRep_n_3, rmRep_n_4, rmRep_n_5), names_to = "wordpos", values_to = "w2v")
+
+# get mean values across stimuli
+df3 <- df2 %>%
+  group_by(ID, wordpos) %>%
+  summarise(w2v_mean = mean(as.numeric(w2v), na.rm = TRUE),
+            nsen_mean = mean(as.numeric(n_sentence), na.rm = TRUE),
+            nword_mean = mean(as.numeric(num_all_words), na.rm = TRUE),
+            ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
+            nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE)) %>%
+  ungroup()
+
+# Extracting other columns from the original dataframe for df3
+other_columns <- df2 %>%
+  select(ID, Gender, AgeScan1, SES, PANSS.Pos, PatientCat, TLI_DISORG, DSST, Trails.B, Category.Fluency..animals.) %>%
+  distinct()
+
+# Merging all the columns together based on 'ID'
+df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
+
 
 #----------------------------
 # get data containing all control demographic variables excluding SES: 34 HC + 70 FEP
@@ -209,8 +248,6 @@ summary(m_grand4b)
 m_grand4c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
-m_grand4d = lm(TLI_DISORG ~  ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
-summary(m_grand4d)
 
 # only participants with SES
 m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 

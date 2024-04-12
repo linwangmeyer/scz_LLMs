@@ -12,6 +12,8 @@ from matplotlib import pyplot as plt
 import gensim.downloader as api
 import seaborn as sns
 from scipy.stats import pearsonr
+from collections import Counter
+from collections import defaultdict
 
 model = api.load("word2vec-google-news-300")
 from scipy.spatial.distance import pdist
@@ -110,11 +112,22 @@ def get_word2vec(content_words):
     return similarity_df, missing_words
 
 
+def remove_repeated_within_window(words, window_size=5):
+    result = []
+    last_occurrence = defaultdict(int)
+    for i, word in enumerate(words):
+        if last_occurrence[word] == 0 or i - last_occurrence[word] > window_size:
+            result.append(word)
+        last_occurrence[word] = i
+    return result
+
+
 def process_file(parent_folder, foldername, filename):
     fname = os.path.join(parent_folder, foldername, filename)
     stim = read_data_fromtxt(fname)
     content_words = get_content_words(stim)
-    df_similarity,_ = get_word2vec(content_words)
+    new_words = remove_repeated_within_window(content_words, window_size=5)
+    df_similarity,_ = get_word2vec(new_words)
     return filename.split('.')[0][6:], df_similarity.mean(axis=0).to_numpy()
 
 ## --------------------------------------------------------------------
@@ -172,14 +185,18 @@ result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
 result_df.drop(columns=['ID_stim'], inplace=True)
 result_df = result_df[['ID', 'stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'word2vec.csv')
+fname = os.path.join(parent_folder,'word2vec_rmRepeated.csv')
 result_df.to_csv(fname,index=False)
 
 ## --------------------------------------------------------------------
 # Load results and statistical tests
 ## --------------------------------------------------------------------
-fname = os.path.join(parent_folder,'word2vec.csv')
+fname = os.path.join(parent_folder,'word2vec_rmRepeated.csv')
 df_w2v = pd.read_csv(fname)
+columns_to_rename = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
+new_names = {'n_1': 'rmRep_n_1', 'n_2': 'rmRep_n_2', 'n_3': 'rmRep_n_3',
+             'n_4': 'rmRep_n_4', 'n_5': 'rmRep_n_5'}
+df_w2v.rename(columns=new_names,inplace=True)
 
 fname_var = os.path.join(parent_folder,'TOPSY_all.csv') #containing topic measures
 df_var = pd.read_csv(fname_var)

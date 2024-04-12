@@ -88,11 +88,11 @@ def count_repetition(word_list, window_size):
         window_size: a number that defines how many words to check for repetition'''
     word_with_repeated_counts = Counter()
     for i in range(len(word_list)):
-        word = content_words[i]
+        word = word_list[i]
         start_index = max(0, i - window_size)
         end_index = i
         # Extract the preceding words within the window
-        window = content_words[start_index:end_index]
+        window = word_list[start_index:end_index]
         if word in window and len(window) > 1:
             word_with_repeated_counts[word] += 1
     return word_with_repeated_counts

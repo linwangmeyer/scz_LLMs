@@ -239,7 +239,10 @@ sum(df9$PatientCat==2) #FEP: 40
 # model continuous effect
 #------------------------------
 # all participants
-m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+#m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+#summary(m_grand4)
+
+m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
 m_grand4b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nsen_mean + Gender + AgeScan1, data = df4) 
@@ -250,7 +253,10 @@ summary(m_grand4c)
 
 
 # only participants with SES
-m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
+#m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
+#summary(m_grand5)
+
+m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + nword_mean, data = df5) 
 summary(m_grand5)
 
 m_grand5b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + nsen_mean, data = df5) 
@@ -260,7 +266,10 @@ m_grand5c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + 
 summary(m_grand5c)
 
 # only participants with both SES and cognitive measures
-m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
+#m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
+#summary(m_grand6)
+
+m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + nword_mean, data = df6) 
 summary(m_grand6)
 
 m_grand6b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + nsen_mean, data = df6) 
@@ -270,7 +279,10 @@ m_grand6c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.
 summary(m_grand6c)
 
 # only participants with SES, cognitive measures and PANSS.Pos
-m_grand7 = lmer(w2v_mean ~ wordpos*PANSS.Pos + (1 | ID) + SES + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df7) 
+#m_grand7 = lmer(w2v_mean ~ wordpos*PANSS.Pos + (1 | ID) + SES + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df7) 
+#summary(m_grand7)
+
+m_grand7 = lmer(w2v_mean ~ wordpos*PANSS.Pos + (1 | ID) + SES + Gender + AgeScan1 + nword_mean, data = df7) 
 summary(m_grand7)
 
 m_grand7b = lmer(w2v_mean ~ wordpos*PANSS.Pos + (1 | ID) + SES + Gender + AgeScan1 + nsen_mean, data = df7) 

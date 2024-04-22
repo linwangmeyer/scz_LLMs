@@ -124,7 +124,7 @@ summary(m_grand4b)
 m_grand4c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
-m_grand4d = lm(topic_mean ~ nword_mean + Gender + AgeScan1, data = df4) 
+m_grand4d = lm(topic_mean ~ TLI_DISORG + ncontent_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4d)
 
 # only participants with SES
@@ -137,6 +137,9 @@ summary(m_grand5b)
 m_grand5c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5c)
 
+m_grand5d = lm(topic_mean ~ TLI_DISORG + ncontent_mean + Gender + AgeScan1 + SES, data = df5) 
+summary(m_grand5d)
+
 # only participants with both SES and cognitive measures
 m_grand6 = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df6) 
 summary(m_grand6)
@@ -147,6 +150,9 @@ summary(m_grand6b)
 m_grand6c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = df6) 
 summary(m_grand6c)
 
+m_grand6d = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + ncontent_mean, data = df6) 
+summary(m_grand6d)
+
 # only participants with SES, cognitive measures and PANSS.Pos: 24 HC + 40 FEP
 m_grand7 = lm(topic_mean ~ TLI_DISORG + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df7) 
 summary(m_grand7)
@@ -154,6 +160,23 @@ summary(m_grand7)
 m_grand7b = lm(topic_mean ~ TLI_DISORG + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df7) 
 summary(m_grand7b)
 
+
+#---------- continuous effect
+# only patients
+df8 <- df3 %>%
+  filter(PatientCat == '2')
+
+m_grand4 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4)
+
+m_grand4b = lm(topic_mean ~ TLI_DISORG + nsen_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4b)
+
+m_grand4c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
+summary(m_grand4c)
+
+m_grand4d = lm(topic_mean ~ TLI_DISORG + ncontent_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4d)
 
 
 #---------- group effect

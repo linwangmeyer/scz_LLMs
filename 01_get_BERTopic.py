@@ -427,6 +427,40 @@ plt.show()
 
 
 ## --------------------------------------------------------------------
+# Relationship between LTI and number of word
+parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
+df = pd.read_csv(fname_var)
+index_to_remove = df[df['stim'] == 'Picture4'].index
+df = df.drop(index_to_remove)
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','num_all_words','stim','entropyApproximate',]]
+filtered_df.dropna(inplace=True)
+r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'])
+print(f'correlation between TLI and Approximate Entropy estimation:'
+      f'\ncorrelation {r},'
+      f'\np value: {p_value}')
+sns.scatterplot(data=filtered_df, x='TLI_DISORG', y='entropyApproximate')
+slope, intercept = np.polyfit(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'], 1)
+regression_line = slope * filtered_df['TLI_DISORG'] + intercept
+plt.plot(filtered_df['TLI_DISORG'], regression_line, color='red', label='Linear Regression')
+plt.savefig('BERT_scatter_patients.eps', format='eps', bbox_inches='tight')
+plt.show()
+
+# Scatter plot, color coding patient group
+df_plot = filtered_df.groupby('ID')[['PatientCat','TLI_DISORG','num_all_words','entropyApproximate']].mean().reset_index()
+sns.scatterplot(data=df_plot, x='TLI_DISORG', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_TLI_Entropy.png', format='png', bbox_inches='tight')
+plt.show()
+
+sns.scatterplot(data=df_plot, x='TLI_DISORG', y='num_all_words', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_TLI_nwords.png', format='png', bbox_inches='tight')
+plt.show()
+
+sns.scatterplot(data=df_plot, x='num_all_words', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_nwords_Entropy.png', format='png', bbox_inches='tight')
+plt.show()
+
+## --------------------------------------------------------------------
 # Relationship between panss and entropy
 filtered_df = df.loc[df['PatientCat'] == 2,['PatientCat','PANSS Pos','stim','entropyApproximate','entropySimilarity','entropyTransform','TransformSimilarity']]
 #filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','stim','PANSS Pos','entropyApproximate','entropySimilarity']]

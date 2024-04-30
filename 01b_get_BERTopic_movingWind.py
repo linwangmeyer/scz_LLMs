@@ -97,7 +97,7 @@ for child_folder in child_folders:
 
 ## --------------------------------------------------------------------
 # Get data and conduct analysis: the approxiamte distribution approach
-window=30
+window=20
 topic_entropy_app = {}
 for foldername, filenames in folder_file.items():
     print(f'folder: {foldername}')
@@ -433,7 +433,7 @@ fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','num_all_words','stim','entropyApproximate',]]
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','num_all_words','stim','entropyApproximate',]]
 filtered_df.dropna(inplace=True)
 r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'])
 print(f'correlation between TLI and Approximate Entropy estimation:'
@@ -447,13 +447,13 @@ plt.savefig('BERT_scatter_patients.eps', format='eps', bbox_inches='tight')
 plt.show()
 
 # Scatter plot, color coding patient group
-df_plot = filtered_df.groupby('ID')[['PatientCat','TLI_IMPOV','num_all_words','entropyApproximate']].mean().reset_index()
-sns.scatterplot(data=df_plot, x='TLI_IMPOV', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
-plt.savefig('BERT_TLI_IMPOV_Entropy.png', format='png', bbox_inches='tight')
+df_plot = filtered_df.groupby('ID')[['PatientCat','TLI_DISORG','num_all_words','entropyApproximate']].mean().reset_index()
+sns.scatterplot(data=df_plot, x='TLI_DISORG', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_TLI_Entropy.png', format='png', bbox_inches='tight')
 plt.show()
 
-sns.scatterplot(data=df_plot, x='TLI_IMPOV', y='num_all_words', hue='PatientCat', palette=['blue', 'red'])
-plt.savefig('BERT_TLI_IMPOV_nwords.png', format='png', bbox_inches='tight')
+sns.scatterplot(data=df_plot, x='TLI_DISORG', y='num_all_words', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_TLI_nwords.png', format='png', bbox_inches='tight')
 plt.show()
 
 sns.scatterplot(data=df_plot, x='num_all_words', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])

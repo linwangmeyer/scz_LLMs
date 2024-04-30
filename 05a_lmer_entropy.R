@@ -49,7 +49,7 @@ vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
 # different subsets of participants, depending on the included variables
 #-----------------------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','num_all_words','num_content_words','num_repeated_words','n_sentence','stim','entropyApproximate')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','num_all_words','num_content_words','num_repeated_words','n_sentence','stim','entropyApproximate')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$entropyApproximate),]
 
@@ -66,7 +66,7 @@ df2 <- df %>%
 
 # Extracting other columns from the original dataframe for df3
 other_columns <- df %>%
-  select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, TLI_DISORG, DSST, Trails.B, Category.Fluency..animals.) %>%
+  select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, TLI_DISORG, TLI_IMPOV, DSST, Trails.B, Category.Fluency..animals.) %>%
   distinct()
 
 # Merging all the columns together based on 'ID'
@@ -75,17 +75,18 @@ df3 <- merge(df2, other_columns, by = "ID", all = TRUE)
 #----------------------------
 # get data containing all control demographic variables excluding SES: 34 HC + 70 FEP
 df4 <- df3 %>%
-  select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
+  select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
   mutate(across(c(ID, PatientCat, Gender), as.factor)) %>%
   drop_na()#na.omit()# Remove rows with NA values
 
 sum(df4$PatientCat==1) #HC: 34
 sum(df4$PatientCat==2) #FEP: 70
 
+
 #----------------------------
 # get data containing all control demographic variables including SES: 33 HC + 60 FEP
 df5 <- df3 %>%
-  select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
+  select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
   mutate(across(c(ID, PatientCat, Gender), as.factor)) %>%
   drop_na()#na.omit()# Remove rows with NA values
 
@@ -95,7 +96,7 @@ sum(df5$PatientCat==2) #FEP: 60
 #----------------------------
 # get data containing all control variables, SES + cognitive functions: 29 HC + 42 FEP
 df6 <- df3 %>%
-  select(ID, PatientCat, Gender, AgeScan1, SES, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
+  select(ID, PatientCat, Gender, AgeScan1, SES, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
   mutate(across(c(ID, PatientCat, Gender), as.factor)) %>%
   drop_na()#na.omit()# Remove rows with NA values
 
@@ -105,7 +106,7 @@ sum(df6$PatientCat==2) #FEP: 42
 #----------------------------
 # get data containing all variables, including SES, PANSS.Pos and cognitive functions: 24 HC + 40 FEP
 df7 <- df3 %>%
-  select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
+  select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
   mutate(across(c(ID, PatientCat, Gender), as.factor)) %>%
   drop_na()#na.omit()# Remove rows with NA values
 
@@ -113,53 +114,77 @@ sum(df7$PatientCat==1) #HC: 24
 sum(df7$PatientCat==2) #FEP: 40
 
 
+#----------------------------
+# get data with utterance of 100-250 words: 34 HC + 48 FEP
+df8 = df4[df4$nword_mean > 100 & df4$nword_mean < 250,]
+
+sum(df8$PatientCat==1) #HC: 34
+sum(df8$PatientCat==2) #FEP: 48
+
+
 #---------- continuous effect
 # all participants
 m_grand4 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
-m_grand4b = lm(topic_mean ~ TLI_DISORG + nsen_mean + Gender + AgeScan1, data = df4) 
+m_grand4b = lm(topic_mean ~ TLI_IMPOV + nsen_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4b)
 
-m_grand4c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
+m_grand4c = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
-m_grand4d = lm(topic_mean ~ TLI_DISORG + ncontent_mean + Gender + AgeScan1, data = df4) 
+m_grand4d = lm(topic_mean ~ TLI_IMPOV + ncontent_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4d)
 
 # only participants with SES
-m_grand5 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1 + SES, data = df5) 
+m_grand5 = lm(topic_mean ~ TLI_IMPOV + nword_mean + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5)
 
-m_grand5b = lm(topic_mean ~ TLI_DISORG + nsen_mean + Gender + AgeScan1 + SES, data = df5) 
+m_grand5b = lm(topic_mean ~ TLI_IMPOV + nsen_mean + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5b)
 
-m_grand5c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES, data = df5) 
+m_grand5c = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5c)
 
-m_grand5d = lm(topic_mean ~ TLI_DISORG + ncontent_mean + Gender + AgeScan1 + SES, data = df5) 
+m_grand5d = lm(topic_mean ~ TLI_IMPOV + ncontent_mean + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5d)
 
 # only participants with both SES and cognitive measures
-m_grand6 = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df6) 
+m_grand6 = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df6) 
 summary(m_grand6)
 
-m_grand6b = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df6) 
+m_grand6b = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df6) 
 summary(m_grand6b)
 
-m_grand6c = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = df6) 
+m_grand6c = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = df6) 
 summary(m_grand6c)
 
-m_grand6d = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + ncontent_mean, data = df6) 
+m_grand6d = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + ncontent_mean, data = df6) 
 summary(m_grand6d)
 
 # only participants with SES, cognitive measures and PANSS.Pos: 24 HC + 40 FEP
-m_grand7 = lm(topic_mean ~ TLI_DISORG + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df7) 
+m_grand7 = lm(topic_mean ~ TLI_IMPOV + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df7) 
 summary(m_grand7)
 
-m_grand7b = lm(topic_mean ~ TLI_DISORG + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df7) 
+m_grand7b = lm(topic_mean ~ TLI_IMPOV + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df7) 
 summary(m_grand7b)
 
+# only participants with utterance between 100-250 words: 34 HC + 49 FEP
+m = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1, data = df8) 
+summary(m)
+
+m = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df8) 
+summary(m)
+
+m = lm(topic_mean ~ TLI_IMPOV + nsen_mean + Gender + AgeScan1, data = df8) 
+summary(m)
+
+m = lm(topic_mean ~ TLI_IMPOV + ncontent_mean + Gender + AgeScan1, data = df8) 
+summary(m)
+
+
+m = lm(TLI_IMPOV ~  nword_mean + Gender + AgeScan1, data = df8) 
+summary(m)
 
 #---------- continuous effect
 # only patients

@@ -21,7 +21,7 @@ setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/sti
 #prepare data: include all variables
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
 df2 <- df %>%
@@ -93,7 +93,7 @@ ggsave("w2v_groups_noalpha.eps", device = "eps", width = 7, height = 5)
 # selecting different subsets of participants
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
 df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
@@ -122,7 +122,7 @@ df3 <- df2 %>%
 
 # Extracting other columns from the original dataframe for df3
 other_columns <- df2 %>%
-  select(ID, Gender, AgeScan1, SES, PANSS.Pos, PatientCat, TLI_DISORG, DSST, Trails.B, Category.Fluency..animals.) %>%
+  select(ID, Gender, AgeScan1, SES, PANSS.Pos, PatientCat, TLI_DISORG, TLI_IMPOV, DSST, Trails.B, Category.Fluency..animals.) %>%
   distinct()
 
 # Merging all the columns together based on 'ID'
@@ -132,7 +132,7 @@ df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
 # For preprocesed content words: remove repeated words
 #--------------------------------------------------------
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','stim','rmRep_n_1','rmRep_n_2','rmRep_n_3','rmRep_n_4','rmRep_n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','rmRep_n_1','rmRep_n_2','rmRep_n_3','rmRep_n_4','rmRep_n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$rmRep_n_1),]
 df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
@@ -161,7 +161,7 @@ df3 <- df2 %>%
 
 # Extracting other columns from the original dataframe for df3
 other_columns <- df2 %>%
-  select(ID, Gender, AgeScan1, SES, PANSS.Pos, PatientCat, TLI_DISORG, DSST, Trails.B, Category.Fluency..animals.) %>%
+  select(ID, Gender, AgeScan1, SES, PANSS.Pos, PatientCat, TLI_DISORG, TLI_IMPOV, DSST, Trails.B, Category.Fluency..animals.) %>%
   distinct()
 
 # Merging all the columns together based on 'ID'
@@ -170,7 +170,7 @@ df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
 
 #----------------------------
 # get data containing all control demographic variables excluding SES: 34 HC + 70 FEP
-df4 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+df4 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          Gender = as.factor(Gender),
@@ -187,7 +187,7 @@ sum(df9$PatientCat==2) #FEP: 70
 
 #----------------------------
 # get data containing all control demographic variables including SES: 33 HC + 60 FEP
-df5 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+df5 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          Gender = as.factor(Gender),
@@ -203,7 +203,7 @@ sum(df9$PatientCat==2) #FEP: 60
 
 #----------------------------
 # get data containing all control variables, SES + cognitive functions: 29 HC + 42 FEP
-df6 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+df6 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          Gender = as.factor(Gender),
@@ -220,7 +220,7 @@ sum(df9$PatientCat==2) #FEP: 42
 
 #----------------------------
 # get data containing all variables, including SES, PANSS.Pos and cognitive functions: 24 HC + 40 FEP
-df7 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+df7 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, SES, PANSS.Pos, DSST, Trails.B, Category.Fluency..animals., TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          Gender = as.factor(Gender),
@@ -242,48 +242,51 @@ sum(df9$PatientCat==2) #FEP: 40
 #m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
 #summary(m_grand4)
 
-m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nword_mean + Gender + AgeScan1, data = df4) 
+m_grand4 = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
-m_grand4b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + Gender + AgeScan1, data = df4) 
+m_grand4b = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + ncontent_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4b)
 
-m_grand4c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1, data = df4) 
+m_grand4c = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
-m_grand4d = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+m_grand4d = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+summary(m_grand4d)
+
+m_grand4d = lmer(nrepeated_mean ~ wordpos*TLI_IMPOV + (1 | ID) + ncontent_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4d)
 
 # only participants with SES
 #m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
 #summary(m_grand5)
 
-m_grand5 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + nword_mean, data = df5) 
+m_grand5 = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + Gender + AgeScan1 + SES + nword_mean, data = df5) 
 summary(m_grand5)
 
-m_grand5b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean, data = df5) 
+m_grand5b = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean, data = df5) 
 summary(m_grand5b)
 
-m_grand5c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES, data = df5) 
+m_grand5c = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + Gender + AgeScan1 + SES, data = df5) 
 summary(m_grand5c)
 
-m_grand5d = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
+m_grand5d = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + Gender + AgeScan1 + SES + ncontent_mean + nrepeated_mean, data = df5) 
 summary(m_grand5d)
 
 # only participants with both SES and cognitive measures
 #m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
 #summary(m_grand6)
 
-m_grand6 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + nword_mean, data = df6) 
+m_grand6 = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + nword_mean, data = df6) 
 summary(m_grand6)
 
-m_grand6b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean, data = df6) 
+m_grand6b = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean, data = df6) 
 summary(m_grand6b)
 
-m_grand6c = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1, data = df6) 
+m_grand6c = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1, data = df6) 
 summary(m_grand6c)
 
-m_grand6d = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
+m_grand6d = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1 + ncontent_mean + nrepeated_mean, data = df6) 
 summary(m_grand6d)
 
 # only participants with SES, cognitive measures and PANSS.Pos

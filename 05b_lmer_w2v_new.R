@@ -8,11 +8,13 @@ select <- dplyr::select
 rename <- dplyr::rename
 
 ## -- Set working directory and install packages:
+## -- Set working directory and install packages:
 if(!require(pacman)) {install.packages("pacman"); require(pacman)}
 
 p_load("ggplot2", "rstudioapi", "tidyverse", "lme4", "lmerTest", 
        "car", "patchwork", "afex", "yarrr", "hypr", "MASS", 
        "emmeans", "udpipe")
+p_load(interactions,lavaan,psych, readxl, semPlot)
 
 #setwd(dirname(getActiveDocumentContext()$path))    ## sets dir to R script path
 setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/")
@@ -158,6 +160,85 @@ df3 <- df2 %>%
             ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
             nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE)) %>%
   ungroup()
+
+
+#--------------------------------------------------------
+# interaction between TLI and Nword
+df4 <- df3 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, wordpos, w2v_mean) %>% 
+  mutate(ID = as.factor(ID),
+         PatientCat = as.factor(PatientCat),
+         Gender = as.factor(Gender),
+         wordpos = as.factor(wordpos)) %>%
+  droplevels() %>%
+  na.omit()
+
+# mean center data: interaction
+d1 <- df4 %>%
+  mutate(
+    nword_centered = scale(nword_mean, scale=FALSE),
+    TLI_centered = scale(TLI_DISORG, scale = FALSE),
+    nrepeated_centered = scale(nrepeated_mean, scale=FALSE)
+  )
+
+m_grand4 = lm(w2v_mean ~ nword_centered*TLI_centered + nrepeated_centered + Gender + AgeScan1, data = d1 %>% filter(wordpos == "n_1")) 
+summary(m_grand4)
+
+## Calculate the trends by condition
+emTrends_m4 <- emtrends(m_grand4, "TLI_centered", var = "nword_centered",
+                        at=list(TLI_centered = c(min(d1$TLI_centered), #0%
+                                                 0, # 33%
+                                                 #0,
+                                                 0.3365, # 66%
+                                                 max(d1$TLI_centered)))) # 100%
+summary(emTrends_m4, infer= TRUE)
+mylist <- list(mc_w2v_m1=seq(-0.2342,0.6447,by=0.2),
+               mc_cloze=c(-0.1564779,0.1768554712,0.5101888,0.8435221))
+
+p_load(interactions)
+m_grand4 %>%
+  interactions::interact_plot(pred = nword_centered,
+                              modx = TLI_centered,
+                              modx.values = c(-0.7259615,0,0.3365,5.024038),
+                              interval = TRUE,
+                              int.type = "confidence",
+                              legend.main = "TLI:") +
+  labs(x = "Nwords",
+       y = "Entropy") +
+  geom_hline(yintercept = 0) +
+  theme_bw() + ylim(8,12) +
+  theme(#legend.position = c(0, 1),
+    #legend.justification = c(-0.1, 1.1),
+    legend.background = element_rect(color = "black"),
+    legend.key.width = unit(1.5, "cm"))
+
+
+## Calculate the trends by condition
+emTrends_m4 <- emtrends(m_grand4, "nword_centered", var = "TLI_centered",
+                        at=list(nword_centered = c(min(d1$nword_centered), #0%
+                                                   -30.85, # 33%
+                                                   0,
+                                                   26.65, # 66%
+                                                   max(d1$nword_centered)))) # 100%
+summary(emTrends_m4, infer= TRUE)
+
+p_load(interactions)
+m_grand4 %>%
+  interactions::interact_plot(pred = TLI_centered,
+                              modx = nword_centered,
+                              modx.values = c(-102.4295,-30.85,0,26.65,278.5705),
+                              interval = TRUE,
+                              int.type = "confidence",
+                              legend.main = "Nword:") +
+  labs(x = "TLI",
+       y = "Entropy") +
+  geom_hline(yintercept = 0) +
+  theme_bw() + ylim(8,12) +
+  theme(#legend.position = c(0, 1),
+    #legend.justification = c(-0.1, 1.1),
+    legend.background = element_rect(color = "black"),
+    legend.key.width = unit(1.5, "cm"))
+
+
 
 # Extracting other columns from the original dataframe for df3
 other_columns <- df2 %>%

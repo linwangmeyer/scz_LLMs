@@ -25,33 +25,23 @@ stop_words_new = [',','uh','um','...','um…','xx','uh…','and…','hm',"'s",
                   'na','ra','ha','ka','huh','bc','a.c','uhh','hey','gee',"n't",'nah']
 stop_words = set(stopwords.words('english') + stop_words_new)
 
-
 def read_data_fromtxt(fname):
     '''input: the full path of the txt file
-    output: segemented sentences based on period marker from patients' speech''' 
+    output: a dictionary containing speech output from different speakers''' 
     with open(fname,'r') as file:
         stim = file.read()
     stim = stim.replace('\xa0', '')
+    stim = stim.replace('\n', ' ')
     stim = stim.replace('<','')
-    stim = stim.replace('>','')
-    input_sections = [section.strip() for section in stim.split('* P') if section.strip() and not section.startswith('* E')]
-    processed_sections = []
-    for section in input_sections:
-        lines = section.split('\n')
-        lines = [line for line in lines if not line.startswith('* E')]
-        for text in lines:
-            text = re.sub(r'\.{3}', 'DOTDOTDOT', text)
-            text = re.sub(r'…', 'DOTDOTDOT', text)
-            text = re.sub(r'(?<=[A-Z])\.(?=[A-Z])', 'DOTABBREVIATION', text)
-            sentences = re.split(r'\.', text)
-            sentences = [sentence.strip().replace('DOTDOTDOT', '...').replace('DOTABBREVIATION', '.') for sentence in sentences if sentence.strip()]
-            processed_sections.append(sentences)
-        sentence_list = [sentence for sublist in processed_sections for sentence in sublist]
-    return sentence_list
+    stim = stim.replace('>','') 
+    input_sections = [section.strip() for section in stim.split('*')]
+    processed_sections = {}
+    for nitem, item in enumerate(input_sections): #seperate speech from speakers
+        if len(item.split()) > 1:
+            processed_sections[item[0]+str(nitem)] = ' '.join(item.split()[1:])
+    return processed_sections
 
-
-def get_content_words(stim):
-    stim_all = ' '.join(stim)
+def get_content_words(stim_all):
     words = word_tokenize(stim_all)
     cleaned_content_words = []
     for i, word in enumerate(words):                   
@@ -120,11 +110,10 @@ for foldername, filenames in folder_file.items():
         print(f'file: {filename}')
         fname = os.path.join(parent_folder, foldername, filename)
         stim = read_data_fromtxt(fname) #each sentence is a list element
+        stim_patient = stim['P1']
+        num_all_words = len(stim_patient.split()) #number of all words, including stop words
         
-        all_words = ' '.join(stim).split()
-        num_all_words = len(all_words) #number of all words, including stop words
-        
-        content_words = get_content_words(stim)
+        content_words = get_content_words(stim_patient)
         num_content_words = len(content_words) #number of content words
         
         word_with_repeated_counts = count_repetition(content_words, 5) #get the number of repeated words within a window=5

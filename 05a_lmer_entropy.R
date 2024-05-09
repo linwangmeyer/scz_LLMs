@@ -16,6 +16,7 @@ if(!require(pacman)) {install.packages("pacman"); require(pacman)}
 p_load("ggplot2", "rstudioapi", "tidyverse", "lme4", "lmerTest", 
        "car", "patchwork", "afex", "yarrr", "hypr", "MASS", 
        "emmeans", "udpipe")
+p_load(interactions,lavaan,psych, readxl, semPlot)
 
 #setwd(dirname(getActiveDocumentContext()$path))    ## sets dir to R script path
 setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/")
@@ -48,8 +49,11 @@ vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
 # individual reference level; include all predictors
 # different subsets of participants, depending on the included variables
 #-----------------------------------------------------------#
+
+#-------------------------------
+# get data ready
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','num_all_words','num_content_words','num_repeated_words','n_sentence','stim','entropyApproximate')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','nword','nsen','stim','entropyApproximate','entropyTransform','TransformSimilarity')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$entropyApproximate),]
 
@@ -58,10 +62,11 @@ df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
 df2 <- df %>%
   group_by(ID) %>%
   summarise(topic_mean = mean(as.numeric(entropyApproximate), na.rm = TRUE),
-            nword_mean = mean(as.numeric(num_all_words), na.rm = TRUE),
-            ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
-            nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE),
-            nsen_mean = mean(as.numeric(n_sentence), na.rm = TRUE)) %>%
+            topicSim_mean = mean(as.numeric(TransformSimilarity), na.rm = TRUE),
+            nword_mean = mean(as.numeric(nword), na.rm = TRUE),
+            #ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
+            #nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE),
+            nsen_mean = mean(as.numeric(nsen), na.rm = TRUE)) %>%
   ungroup()
 
 # Extracting other columns from the original dataframe for df3
@@ -75,7 +80,7 @@ df3 <- merge(df2, other_columns, by = "ID", all = TRUE)
 #----------------------------
 # get data containing all control demographic variables excluding SES: 34 HC + 70 FEP
 df4 <- df3 %>%
-  select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
+  select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, topic_mean) %>% 
   mutate(across(c(ID, PatientCat, Gender), as.factor)) %>%
   drop_na()#na.omit()# Remove rows with NA values
 
@@ -121,13 +126,144 @@ df8 = df4[df4$nword_mean > 100 & df4$nword_mean < 250,]
 sum(df8$PatientCat==1) #HC: 34
 sum(df8$PatientCat==2) #FEP: 48
 
+df10 <- df4[df4$PatientCat==2,]
+m = lm(TLI_DISORG ~ topic_mean + Gender + AgeScan1, data = df10) 
+summary(m)
 
-#---------- continuous effect
-# all participants
-m_grand4 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
+#----------------------------------------------------------
+# mean center data to get effect at the mean centered level
+d1 <- df4 %>%
+  mutate(
+  nword_centered = scale(nword_mean, scale=FALSE),
+  TLI_centered = scale(TLI_DISORG, scale = FALSE)
+)
+
+#--------------------------------------------------------
+# test interaction between TLI and nword
+m_grand4 = lm(topic_mean ~ TLI_centered*nword_centered + Gender + AgeScan1, data = d1) 
 summary(m_grand4)
 
-m_grand4b = lm(topic_mean ~ TLI_IMPOV + nsen_mean + Gender + AgeScan1, data = df4) 
+# check multicollinearity
+car::vif(m_grand4)
+
+
+## Calculate the trends by condition: for each level of nword_centered
+emTrends_m4 <- emtrends(m_grand4, "nword_centered", var = "TLI_centered",
+                        at=list(nword_centered = c(min(d1$nword_centered), #n=49.67
+                                                 -30.85, # 1st quantile: n=121.25
+                                                 0, # mean: n=152.10
+                                                 26.65, # 3rd quantile: n=178.75
+                                                 50,
+                                                 100,
+                                                 max(d1$nword_centered)))) # max: n=430.67
+summary(emTrends_m4, infer= TRUE)
+
+# visualize the interactions: TLI vs. entropy for each Nword level
+m_grand4 %>%
+  interactions::interact_plot(pred = TLI_centered,
+                              modx = nword_centered,
+                              modx.values = c(-90,-50,50,100),
+                              interval = TRUE,
+                              int.type = "confidence",
+                              legend.main = "Nword_meanCentered:") +
+  labs(x = "TLI",
+       y = "Entropy") +
+  geom_hline(yintercept = 0) +
+  theme_bw() + ylim(8,12) +
+  theme(#legend.position = c(0, 1),
+    #legend.justification = c(-0.1, 1.1),
+    legend.background = element_rect(color = "black"),
+    legend.key.width = unit(1.5, "cm"))
+
+
+# Create bins for TLI_disorg and nword_mean
+d1$TLI_disorg_bin <- cut(d1$TLI_DISORG,
+                         breaks = c(-Inf, 1, 3, Inf),
+                         labels = c('<1','1-3','>3'),
+                         right = FALSE)
+
+d1$nword_mean_bin <- cut(d1$nword_mean, 
+                         breaks = c(-Inf, 100, 250, Inf), 
+                         labels = c("<100", "100-250", ">250"),
+                         right = FALSE)
+
+# Create the bar plot
+ggplot(d1, aes(x = TLI_disorg_bin, y = topic_mean, fill = nword_mean_bin)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(x = "TLI_pos", y = "Entropy") +
+  scale_fill_discrete(name = "nword") +  # Customize legend title
+  theme_minimal()
+
+
+
+## Calculate the trends by condition: for each level of TLI
+emTrends_m4 <- emtrends(m_grand4, "TLI_centered", var = "nword_centered",
+                        at=list(TLI_centered = c(min(d1$TLI_centered), #min
+                                                 -0.7260, #1st Qu    
+                                                 0, # mean
+                                                 0.3365, # 3rd Qu
+                                                 max(d1$TLI_centered)))) #max
+
+# visualize the interactions: TLI vs. nwords for each TLI level
+m_grand4 %>%
+  interactions::interact_plot(pred = nword_centered,
+                              modx = TLI_centered,
+                              modx.values = c(-0.7259615,0,0.3365,5.024038),
+                              interval = TRUE,
+                              int.type = "confidence",
+                              legend.main = "TLI:") +
+  labs(x = "Nwords",
+       y = "Entropy") +
+  geom_hline(yintercept = 0) +
+  theme_bw() + ylim(8,12) +
+  theme(#legend.position = c(0, 1),
+    #legend.justification = c(-0.1, 1.1),
+    legend.background = element_rect(color = "black"),
+    legend.key.width = unit(1.5, "cm"))
+
+
+#--------------------------------------------------------
+# mediation analysis
+d1 <- df4 %>%
+  mutate(
+    nword_centered = scale(nword_mean, scale=TRUE),
+    TLI_centered = scale(TLI_IMPOV, scale = TRUE)
+  )
+
+# check correlation
+correlations <- cor(d1 %>% select(TLI_centered,nword_centered,topic_mean))
+print(correlations)
+
+mediation_model <- '
+# direct effect
+nword_centered ~ a * TLI_centered
+topic_mean ~ c * TLI_centered + b * nword_centered
+
+# indirect effect (a*b)
+indirect := a * b
+
+#Total effect (c+indirect)
+total := c + indirect
+'
+
+# Estimate the mediation model
+mediation_results <- sem(mediation_model, data = d1)
+
+# Summrize the results
+summary(mediation_results, standardized =TRUE, fit.measures = TRUE)
+
+# visualize
+semPaths(mediation_results, whatLabels = 'est',
+         style = 'lisrel',
+         intercepts=FALSE)
+
+#--------------------------------------------------------
+# lmer models
+# all participants
+m_grand4 = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
+summary(m_grand4)
+
+m_grand4b = lm(topic_mean ~ TLI_IMPOV + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4b)
 
 m_grand4c = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1, data = df4) 

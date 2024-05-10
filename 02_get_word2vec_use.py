@@ -1,115 +1,13 @@
 # Get word2vec semantic similarity for speech output
-import json
-import pandas as pd
+from bert_utils import  process_file_w2v
+from bert_utils import get_content_words,get_word2vec
+from bert_utils import read_data_fromtxt,get_speech_before_time_up
 import numpy as np
-import nltk
-import re
+import pandas as pd
 import os
-from nltk.tokenize import word_tokenize
-from nltk.corpus import stopwords
-import string
 from matplotlib import pyplot as plt
-import gensim.downloader as api
 import seaborn as sns
 from scipy.stats import pearsonr
-
-model = api.load("word2vec-google-news-300")
-from scipy.spatial.distance import pdist
-nltk.download('punkt')
-nltk.download('stopwords')
-stop_words_new = [',','uh','um','...','um…','xx','uh…','and…','hm',"'s",'..',
-                  'mhmm','mmhmm','mhm',"''",'eh','re',"”",'v','hmm',"'m",'ish',
-                  'umm','ii','yup','yes','ugh',"“",'ar','oh','h',"'re",'ohh',
-                  'wow','lo','aw','ta','ah','na','ex',"'","’","‘",'yo','ok','ah','mm',
-                  'na','ra','ha','ka','huh','bc','a.c','uhh','hey','gee',"n't",'nah']
-stop_words = set(stopwords.words('english') + stop_words_new)
-
-
-def read_data_fromtxt(fname):
-    '''input: the full path of the txt file
-    output: a dictionary containing speech output from different speakers''' 
-    with open(fname,'r') as file:
-        stim = file.read()
-    stim = stim.replace('\xa0', '')
-    stim = stim.replace('\n', ' ')
-    stim = stim.replace('<','')
-    stim = stim.replace('>','') 
-    input_sections = [section.strip() for section in stim.split('*')]
-    processed_sections = {}
-    for nitem, item in enumerate(input_sections): #seperate speech from speakers
-        if len(item.split()) > 1:
-            processed_sections[item[0]+str(nitem)] = ' '.join(item.split()[1:])
-    return processed_sections
-
-
-def get_content_words(stim_all):
-    words = word_tokenize(stim_all)
-    cleaned_content_words = []
-    for i, word in enumerate(words):                   
-        cleaned_word = word.replace('-', ' ')  # Replace '-' with a space to split the word
-        cleaned_word = cleaned_word.replace('—', ' ')
-        cleaned_word = cleaned_word.replace('-', ' ')
-        cleaned_word = cleaned_word.replace('…', ' ')
-        cleaned_word = cleaned_word.replace('stereotypicalprison', 'stereotypical prison')
-        cleaned_word = cleaned_word.replace('almostof', 'almost of')
-        cleaned_word = cleaned_word.replace('girlhas', 'girl has')
-        cleaned_word = cleaned_word.replace('shelooks', 'she looks')        
-        cleaned_word = cleaned_word.replace('grey', 'gray')
-        cleaned_word = cleaned_word.replace('judgement', 'judgment')
-        cleaned_words = cleaned_word.split()   # Split the cleaned word into multiple words
-        for cleaned_subword in cleaned_words:
-            cleaned_subword = cleaned_subword.replace('labour', 'labor')
-            cleaned_subword = cleaned_subword.replace("'cause", 'because')
-            cleaned_subword = cleaned_subword.replace('centre', 'center')
-            cleaned_subword = cleaned_subword.replace('theatre', 'theater')
-            cleaned_subword = cleaned_subword.replace('hholding', 'holding')                        
-            if cleaned_subword.lower() not in stop_words and cleaned_subword not in string.punctuation:
-                if cleaned_subword.endswith('...'):
-                    cleaned_content_words.append(cleaned_subword[:-3])
-                else:
-                    cleaned_content_words.append(cleaned_subword.lower())
-    x = nltk.pos_tag(cleaned_content_words)
-    content_word_categories = ['NN', 'NNS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS']     
-    words_with_desired_tags = [word for word, tag in x if tag in content_word_categories]
- 
-    return words_with_desired_tags
-
-
-def get_word2vec(content_words):
-    '''get word2vec similarity values between word n and word n-1, ..., n-5 for each word
-    input: a list of words
-    outout: dataframe of five columns'''
-    missing_words = [word for word in content_words if word not in model.key_to_index]
-    content_words = [word for word in content_words if word not in missing_words]
-    
-    similarities = []
-    for i in range(5, len(content_words)):
-        word_n_minus_1 = content_words[i - 1]
-        word_n_minus_2 = content_words[i - 2]
-        word_n_minus_3 = content_words[i - 3]
-        word_n_minus_4 = content_words[i - 4]
-        word_n_minus_5 = content_words[i - 5]
-        word_n = content_words[i]
-        
-        similarity_n_1 = model.similarity(word_n_minus_1, word_n)
-        similarity_n_2 = model.similarity(word_n_minus_2, word_n)
-        similarity_n_3 = model.similarity(word_n_minus_3, word_n)
-        similarity_n_4 = model.similarity(word_n_minus_4, word_n)
-        similarity_n_5 = model.similarity(word_n_minus_5, word_n)
-        
-        similarities.append([similarity_n_1, similarity_n_2, similarity_n_3, similarity_n_4, similarity_n_5])
-    columns = ['similarity_n_1', 'similarity_n_2', 'similarity_n_3', 'similarity_n_4', 'similarity_n_5']
-    similarity_df = pd.DataFrame(similarities, columns=columns)
-    return similarity_df, missing_words
-
-
-def process_file(parent_folder, foldername, filename):
-    fname = os.path.join(parent_folder, foldername, filename)
-    stim = read_data_fromtxt(fname)
-    stim_all = stim['P1']
-    content_words = get_content_words(stim_all)
-    df_similarity,_ = get_word2vec(content_words)
-    return filename.split('.')[0][6:], df_similarity.mean(axis=0).to_numpy()
 
 ## --------------------------------------------------------------------
 # Read data
@@ -124,9 +22,9 @@ for child_folder in child_folders:
     text_files = [file for file in os.listdir(child_folder_path) if file.endswith(".txt")]
     folder_file[child_folder] = text_files
 
-
-
+## --------------------------------------------------------------------
 # Get list of missing words, and included content words
+## --------------------------------------------------------------------
 missing_words_list = {}
 content_words_list = {}
 for foldername, filenames in folder_file.items():
@@ -135,7 +33,21 @@ for foldername, filenames in folder_file.items():
         print(f'file: {filename}')
         fname = os.path.join(parent_folder, foldername, filename)
         stim = read_data_fromtxt(fname)
-        stim_all = stim['P1']
+        
+        #only first response
+        #stim_all = stim['P1']
+        
+        #up to time out
+        stim_cmb = get_speech_before_time_up(stim)
+        if len(stim_cmb[0]) > 1: #if there are more than 1 turn
+            stim_all = ' '.join(stim_cmb)
+        else:
+            stim_all = stim_cmb
+        
+        #all speech
+        #stim_cmb = [stim[key] for key in stim if key.startswith('P')]
+        #stim_all = ' '.join(stim_cmb)
+                
         content_words = get_content_words(stim_all)
         content_words_list[filename.split('.')[0][6:]] = content_words
         _,missing_words = get_word2vec(content_words)
@@ -143,51 +55,68 @@ for foldername, filenames in folder_file.items():
 concatenated_values = [value for values in missing_words_list.values() for value in values]
 all_content_words = [value for values in content_words_list.values() for value in values]
 unique_words_all = set(all_content_words)
-with open(os.path.join(parent_folder, 'removed_words_word2vec.txt'), 'w') as file:
+with open(os.path.join(parent_folder, 'removed_words_word2vec_spontaneous.txt'), 'w') as file:
     for word in concatenated_values:
         file.write(word  +'\n')
-with open(os.path.join(parent_folder, 'unique_words.txt'), 'w') as file:
+with open(os.path.join(parent_folder, 'unique_words_spontaneous.txt'), 'w') as file:
     for word in unique_words_all:
         file.write(word + '\n')
+
+
 
 ## --------------------------------------------------------------------
 # Get word2vec similarity values
 ## --------------------------------------------------------------------
-word2vec_similarity = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        id_stim, similarity_values = process_file(parent_folder, foldername, filename)
-        word2vec_similarity[id_stim] = similarity_values
-result_data = [(id_stim, *similarity_values) for id_stim, similarity_values in word2vec_similarity.items()]
-columns = ['ID_stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']
-result_df = pd.DataFrame(result_data, columns=columns)
-result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
-result_df.drop(columns=['ID_stim'], inplace=True)
-result_df = result_df[['ID', 'stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
-result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'word2vec.csv')
-result_df.to_csv(fname,index=False)
+# speech of different conditions
+mode_label = ['before_time_up','spontaneous', 'full_speech']
+outputfile_label = ['1min', 'spontaneous', 'concatenated']
+
+for k in range(3):
+    mode = mode_label[k]
+    outputfile = outputfile_label[k]
+
+    word2vec_similarity = {}
+    for foldername, filenames in folder_file.items():
+        print(f'folder: {foldername}')
+        for filename in filenames:
+            print(f'file: {filename}')
+            id_stim, w2v_sim, num_all_words, num_content_words, num_repetition = process_file_w2v(parent_folder, foldername, filename, mode=mode)
+            word2vec_similarity[id_stim] = {'w2v_sim': w2v_sim, 'num_all_words': num_all_words, 'num_content_words': num_content_words, 'num_repetition': num_repetition}
+
+    result_data = [(id_stim, *similarity_values['w2v_sim'], similarity_values['num_all_words'], similarity_values['num_content_words'], similarity_values['num_repetition']) for id_stim, similarity_values in word2vec_similarity.items()]
+    columns = ['ID_stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'num_all_words', 'num_content_words', 'num_repetition']
+    result_df = pd.DataFrame(result_data, columns=columns)
+    result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
+    result_df.drop(columns=['ID_stim'], inplace=True)
+    result_df = result_df[['ID', 'stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'num_all_words', 'num_content_words', 'num_repetition']]
+    result_df['ID'] = result_df['ID'].astype('int64')
+    fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
+    result_df.to_csv(fname,index=False)
+
 
 ## --------------------------------------------------------------------
-# Load results and statistical tests
+# Combine with subject info
 ## --------------------------------------------------------------------
-fname = os.path.join(parent_folder,'word2vec.csv')
-df_w2v = pd.read_csv(fname)
+parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+outputfile_label = ['1min', 'spontaneous', 'concatenated']
+for k in range(3):
+    outputfile = outputfile_label[k]
+    fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
+    df_w2v = pd.read_csv(fname)
 
-fname_var = os.path.join(parent_folder,'TOPSY_all.csv') #containing topic measures
-df_var = pd.read_csv(fname_var)
+    fname_var = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv') #containing topic measures
+    df_var = pd.read_csv(fname_var)
 
-df_merge = df_var.merge(df_w2v, on=['ID','stim'],how='outer')
-filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
+    df_merge = df_var.merge(df_w2v, on=['ID','stim'],how='outer')
+    filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
+    filtered_df.drop(columns=['nword'], inplace=True)
 
-fname_all = os.path.join(parent_folder,'TOPSY_all.csv')
-filtered_df.to_csv(fname_all,index=False)
+    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
+    filtered_df.to_csv(fname_all,index=False)
 
-df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
-df_goi.to_csv(fname_goi,index=False)
+    df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
+    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
+    df_goi.to_csv(fname_goi,index=False)
 
 
 ## --------------------------------------------------------------------
@@ -195,7 +124,7 @@ df_goi.to_csv(fname_goi,index=False)
 ## --------------------------------------------------------------------
 # Compare between two groups
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)

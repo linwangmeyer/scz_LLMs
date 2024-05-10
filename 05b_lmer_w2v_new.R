@@ -22,14 +22,14 @@ setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/sti
 #---------------------------------------------#
 #prepare data: include all variables
 #---------------------------------------------#
-data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repetition','nsen')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
 df2 <- df %>%
   pivot_longer(cols = c(n_1, n_2, n_3, n_4, n_5), names_to = "wordpos", values_to = "w2v")
 
-df3 <- df2 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, n_sentence, stim, wordpos, w2v) %>% 
+df3 <- df2 %>% select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, nsen, stim, wordpos, w2v) %>% 
   mutate(ID = as.factor(ID),
          PatientCat = as.factor(PatientCat),
          stim = as.factor(stim),
@@ -94,8 +94,8 @@ ggsave("w2v_groups_noalpha.eps", device = "eps", width = 7, height = 5)
 # individual reference level
 # selecting different subsets of participants
 #---------------------------------------------#
-data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repetition','nsen')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
 df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
@@ -116,10 +116,10 @@ df2 <- df %>%
 df3 <- df2 %>%
   group_by(ID, wordpos) %>%
   summarise(w2v_mean = mean(as.numeric(w2v), na.rm = TRUE),
-            nsen_mean = mean(as.numeric(n_sentence), na.rm = TRUE),
+            nsen_mean = mean(as.numeric(nsen), na.rm = TRUE),
             nword_mean = mean(as.numeric(num_all_words), na.rm = TRUE),
             ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
-            nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE)) %>%
+            nrepeated_mean = mean(as.numeric(num_repetition), na.rm = TRUE)) %>%
   ungroup()
 
 # Extracting other columns from the original dataframe for df3
@@ -134,7 +134,7 @@ df3 <- merge(df3, other_columns, by = "ID", all = TRUE)
 # For preprocesed content words: remove repeated words
 #--------------------------------------------------------
 data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','rmRep_n_1','rmRep_n_2','rmRep_n_3','rmRep_n_4','rmRep_n_5','num_all_words','num_content_words','num_repeated_words','n_sentence')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','rmRep_n_1','rmRep_n_2','rmRep_n_3','rmRep_n_4','rmRep_n_5','num_all_words','num_content_words','num_repitition','n_sentence')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$rmRep_n_1),]
 df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
@@ -180,7 +180,7 @@ d1 <- df4 %>%
     nrepeated_centered = scale(nrepeated_mean, scale=FALSE)
   )
 
-m_grand4 = lm(w2v_mean ~ nword_centered*TLI_centered + nrepeated_centered + Gender + AgeScan1, data = d1 %>% filter(wordpos == "n_1")) 
+m_grand4 = lm(w2v_mean ~ TLI_centered*nword_centered + Gender + AgeScan1, data = d1 %>% filter(wordpos == "n_1")) 
 summary(m_grand4)
 
 ## Calculate the trends by condition
@@ -191,10 +191,7 @@ emTrends_m4 <- emtrends(m_grand4, "TLI_centered", var = "nword_centered",
                                                  0.3365, # 66%
                                                  max(d1$TLI_centered)))) # 100%
 summary(emTrends_m4, infer= TRUE)
-mylist <- list(mc_w2v_m1=seq(-0.2342,0.6447,by=0.2),
-               mc_cloze=c(-0.1564779,0.1768554712,0.5101888,0.8435221))
 
-p_load(interactions)
 m_grand4 %>%
   interactions::interact_plot(pred = nword_centered,
                               modx = TLI_centered,
@@ -323,19 +320,19 @@ sum(df9$PatientCat==2) #FEP: 40
 #m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
 #summary(m_grand4)
 
-m_grand4 = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + nword_mean + Gender + AgeScan1, data = df4) 
+m_grand4 = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + ncontent_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
-m_grand4b = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + ncontent_mean + Gender + AgeScan1, data = df4) 
+m_grand4b = lmer(w2v_mean ~ wordpos*TLI_DISORG + (1 | ID) + nrepeated_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4b)
 
 m_grand4c = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + Gender + AgeScan1, data = df4) 
 summary(m_grand4c)
 
-m_grand4d = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + ncontent_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
+m_grand4d = lmer(w2v_mean ~ wordpos*TLI_IMPOV + (1 | ID) + nrepeated_mean + nrepeated_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4d)
 
-m_grand4d = lmer(nrepeated_mean ~ wordpos*TLI_IMPOV + (1 | ID) + ncontent_mean + Gender + AgeScan1, data = df4) 
+m_grand4d = lmer(nrepeated_mean ~ wordpos*TLI_IMPOV + (1 | ID) + nrepeated_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4d)
 
 # only participants with SES
@@ -443,7 +440,7 @@ summary(m_grand8b)
 # take stim items as fixed effect
 # every level compares to n_1
 #---------------------------------------------#
-cmat(design_matrix, add_intercept = TRUE) <- contrasts(df3$wordpos)
+cmat(design_matrix, add_intercept = TRUE) <- contrasts(df4$wordpos)
 design_matrix
 mpos1 <- lmer(w2v ~ PatientCat*wordpos + stim + Gender + AgeScan1 + SES + TLI_DISORG + n_sentence + (1 | ID), data = df3)
 mpos2 <- lmer(w2v ~ PatientCat + wordpos + stim + Gender + AgeScan1 + SES + TLI_DISORG + n_sentence + (1 | ID), data = df3)

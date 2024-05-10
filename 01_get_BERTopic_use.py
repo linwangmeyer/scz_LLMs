@@ -1,28 +1,11 @@
-from utils import read_data_fromtxt, calculate_entropy_app, cal_entropy_weighted, calculate_entropy_similarity
 import json
-import math
-import os
-import re
-import pandas as pd
+from bert_utils import process_file_topic
 import numpy as np
+import pandas as pd
+import os
+from matplotlib import pyplot as plt
 import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.metrics.pairwise import cosine_similarity
 from scipy.stats import pearsonr
-from scipy import stats
-import nltk
-nltk.download('punkt')
-from nltk.tokenize import sent_tokenize
-from sentence_transformers import SentenceTransformer
-from bertopic import BERTopic
-
-## --------------------------------------------------------------------
-# Load pre-trained models
-## --------------------------------------------------------------------
-topic_model = BERTopic.load("MaartenGr/BERTopic_Wikipedia")
-#topic_model = BERTopic.load("davanstrien/chat_topics")
-# for a list of pre-trained topics, see: https://huggingface.co/models?library=bertopic&sort=downloads
-
 
 ## --------------------------------------------------------------------
 # Read data
@@ -38,103 +21,74 @@ for child_folder in child_folders:
     folder_file[child_folder] = text_files
 
 ## --------------------------------------------------------------------
-# Get data and conduct analysis:
-file_list = []
-sentence_count_list = []
-word_count_list = []
-window=30
-topic_entropy_app = [] #the approxiamte distribution approach, moving window similarity
-topic_entropy_trans = [] #Get dominant topic and its associated probability for each sentence
-topic_sim = [] #dominant topic pairwise similarity
-topic_entropy_sim = [] #find_topic based on similarity
-top_n = 2376
+# Get topic measures
+## --------------------------------------------------------------------
+
+# Calculate topic measures: speech of different conditions
+mode_label = ['before_time_up','spontaneous', 'full_speech']
+outputfile_label = ['1min', 'spontaneous', 'concatenated']
+k = 0
+mode = mode_label[k]
+outputfile = outputfile_label[k]
+
+topic_measures = {}
 for foldername, filenames in folder_file.items():
     print(f'folder: {foldername}')
     for filename in filenames:
         print(f'file: {filename}')
-        fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)
-        stim_full = stim['P1'] #only select patient's initial response
-        
-        # get file name
-        file_list.append(filename.split('.')[0][6:])
-        
-        # approximate approach
-        appdistr_topic, _ = topic_model.approximate_distribution(stim_full,window=window,use_embedding_model=True)
-        entropy_val = calculate_entropy_app(appdistr_topic[0])
-        topic_entropy_app.append(entropy_val)
-        
-        # dominant topic and then calculate entropy
-        stim_sen = sent_tokenize(stim_full)
-        domtopic, prob = topic_model.transform(stim_sen)
-        entropy_transform = cal_entropy_weighted(domtopic,prob)
-        topic_entropy_trans.append(entropy_transform)
-        
-        # get pairwise cosine similarity between identified topic embeddings normalized by number of sentences
-        sim_matrix = cosine_similarity(np.array(topic_model.topic_embeddings_)[domtopic,:])
-        labels = [topic_model.get_topic_info(label).Name.to_list()[0] for label in domtopic]
-        blow_index = np.tril_indices(sim_matrix.shape[0], k=-1)
-        mean_sim = np.mean(sim_matrix[blow_index])
-        topic_sim.append(mean_sim)
-        
-        # Use find_topic to get similarity/probability of the whole input
-        _, similarity = topic_model.find_topics(stim_full,top_n=top_n)
-        entropy_val = calculate_entropy_similarity(similarity)
-        topic_entropy_sim.append(entropy_val)
-        
-        # Get number of sentences, number of words information
-        n_sentence = len(stim_sen)
-        n_word = len(stim_full.split())
-        
-        sentence_count_list.append(n_sentence)
-        word_count_list.append(n_word)
+        id_stim, topic_entropy_app, topic_entropy_trans, topic_sim, topic_entropy_sim, n_sentence, n_word = process_file_topic(parent_folder, foldername, filename, mode=mode, window=30)
+        topic_measures[id_stim] = {'entropyApproximate': topic_entropy_app,
+                                    'entropyTransform': topic_entropy_trans,
+                                    'TransformSimilarity': topic_sim,
+                                    'entropySimilarity': topic_entropy_sim,
+                                    'nsen': n_sentence,
+                                    'nword': n_word}
+result_data = [(id_stim, values['entropyApproximate'], values['entropyTransform'], values['TransformSimilarity'], values['entropySimilarity'], values['nsen'], values['nword']) for id_stim, values in topic_measures.items()]
+columns = ['ID_stim', 'entropyApproximate', 'entropyTransform', 'TransformSimilarity', 'entropySimilarity', 'nsen', 'nword']
+result_df = pd.DataFrame(result_data, columns=columns)
+result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
+result_df.drop(columns=['ID_stim'], inplace=True)
+result_df['ID'] = result_df['ID'].astype('int64')
+fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+result_df.to_csv(fname, index=False)
 
-df = pd.DataFrame({
-    'filename': file_list,
-    'entropyApproximate': topic_entropy_app,
-    'entropyTransform': topic_entropy_trans,
-    'TransformSimilarity': topic_sim,
-    'entropySimilarity': topic_entropy_sim,
-    'nsen': sentence_count_list,
-    'nword': word_count_list
-})
 
-df[['ID', 'stim']] = df['filename'].str.split('_', expand=True)
-df.drop(columns=['filename'], inplace=True)
-
-fname = os.path.join(parent_folder,'topic_measures_spontaneous.csv')
-df.to_csv(fname,index=False)
 
 
 ## --------------------------------------------------------------------
-# Load results and statistical tests
+# Combine with subject info
 ## --------------------------------------------------------------------
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname = os.path.join(parent_folder,'topic_measures_spontaneous.csv')
-df = pd.read_csv(fname)
-df['ID'] = df['ID'].astype('int64')
+outputfile_label = ['1min', 'spontaneous', 'concatenated']
+for k in range(3):
+    outputfile = outputfile_label[k]
 
-fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
-df_var = pd.read_csv(fname_var)
+    fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+    df = pd.read_csv(fname)
+    df['ID'] = df['ID'].astype('int64')
 
-df_merge = df_var.merge(df,on='ID',how='outer')
+    fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
+    df_var = pd.read_csv(fname_var)
 
-filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
-fname_all = os.path.join(parent_folder,'TOPSY_all_spontaneous.csv')
-filtered_df.to_csv(fname_all,index=False)
+    df_merge = df_var.merge(df,on='ID',how='outer')
 
-df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_spontaneous.csv')
-df_goi.to_csv(fname_goi,index=False)
+    filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
+    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
+    filtered_df.to_csv(fname_all,index=False)
+
+    df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
+    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
+    df_goi.to_csv(fname_goi,index=False)
+
 
 ## --------------------------------------------------------------------
-# Load results and statistical tests
+# Visualization and statsitcal tests
 ## --------------------------------------------------------------------
 
 ## --------------------------------------------------------------------
 # Relationship between LTI and number of word
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_spontaneous.csv')
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)

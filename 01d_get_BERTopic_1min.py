@@ -1,6 +1,6 @@
-from utils import read_data_fromtxt, calculate_entropy_app, cal_entropy_weighted, calculate_entropy_similarity
+from utils import read_data_fromtxt, get_speech_before_time_up, calculate_entropy_app, cal_entropy_weighted, calculate_entropy_similarity
+from utils import process_file_topic
 import json
-import math
 import os
 import re
 import pandas as pd
@@ -16,9 +16,7 @@ from nltk.tokenize import sent_tokenize
 from sentence_transformers import SentenceTransformer
 from bertopic import BERTopic
 
-## --------------------------------------------------------------------
 # Load pre-trained models
-## --------------------------------------------------------------------
 topic_model = BERTopic.load("MaartenGr/BERTopic_Wikipedia")
 #topic_model = BERTopic.load("davanstrien/chat_topics")
 # for a list of pre-trained topics, see: https://huggingface.co/models?library=bertopic&sort=downloads
@@ -37,6 +35,7 @@ for child_folder in child_folders:
     text_files = [file for file in os.listdir(child_folder_path) if file.endswith(".txt")]
     folder_file[child_folder] = text_files
 
+    
 ## --------------------------------------------------------------------
 # Get data and conduct analysis:
 file_list = []
@@ -54,8 +53,10 @@ for foldername, filenames in folder_file.items():
         print(f'file: {filename}')
         fname = os.path.join(parent_folder, foldername, filename)
         stim = read_data_fromtxt(fname)
-        stim_full = stim['P1'] #only select patient's initial response
         
+        stim_all = get_speech_before_time_up(stim)
+        stim_full = ' '.join(stim_all)
+
         # get file name
         file_list.append(filename.split('.')[0][6:])
         
@@ -102,15 +103,20 @@ df = pd.DataFrame({
 df[['ID', 'stim']] = df['filename'].str.split('_', expand=True)
 df.drop(columns=['filename'], inplace=True)
 
-fname = os.path.join(parent_folder,'topic_measures_spontaneous.csv')
+fname = os.path.join(parent_folder,'topic_measures_1min.csv')
 df.to_csv(fname,index=False)
+
+
+
+process_file_topic
+
 
 
 ## --------------------------------------------------------------------
 # Load results and statistical tests
 ## --------------------------------------------------------------------
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname = os.path.join(parent_folder,'topic_measures_spontaneous.csv')
+fname = os.path.join(parent_folder,'topic_measures_1min.csv')
 df = pd.read_csv(fname)
 df['ID'] = df['ID'].astype('int64')
 
@@ -120,11 +126,11 @@ df_var = pd.read_csv(fname_var)
 df_merge = df_var.merge(df,on='ID',how='outer')
 
 filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
-fname_all = os.path.join(parent_folder,'TOPSY_all_spontaneous.csv')
+fname_all = os.path.join(parent_folder,'TOPSY_all.csv')
 filtered_df.to_csv(fname_all,index=False)
 
 df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_spontaneous.csv')
+fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
 df_goi.to_csv(fname_goi,index=False)
 
 ## --------------------------------------------------------------------
@@ -134,7 +140,7 @@ df_goi.to_csv(fname_goi,index=False)
 ## --------------------------------------------------------------------
 # Relationship between LTI and number of word
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_spontaneous.csv')
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
@@ -170,12 +176,12 @@ plt.show()
 ## --------------------------------------------------------------------
 # Compare between two groups
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
 
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','TLI_DISORG','entropyTransform','TransformSimilarity','entropyApproximate','entropySimilarity','n_sentence']]
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['PatientCat','TLI_DISORG','entropyTransform','TransformSimilarity','entropyApproximate','entropySimilarity','nword','nsen']]
 filtered_df.dropna(inplace=True)
 df_ctrl = filtered_df[filtered_df['PatientCat']==1]
 df_scz = filtered_df.loc[(df['PatientCat'] == 2) & (filtered_df['TLI_DISORG']>2)]
@@ -201,8 +207,8 @@ print(f'correlation between Patient category and Similarity-based Entropy estima
       f'\ncorrelation {r},'
       f'\np value: {p_value}')
 filtered_df.groupby('PatientCat').agg(['mean', 'std'])
-r, p_value = pearsonr(filtered_df['PatientCat'], filtered_df['n_sentence'])
-print(f'correlation between Patient category and Number of sentence:'
+r, p_value = pearsonr(filtered_df['PatientCat'], filtered_df['nword'])
+print(f'correlation between Patient category and Number of words:'
       f'\ncorrelation {r},'
       f'\np value: {p_value}')
 filtered_df.groupby('PatientCat').agg(['mean', 'std'])
@@ -241,8 +247,8 @@ axes[1,0].set_xlabel('Category')
 axes[1,0].set_ylabel('Entropy')
 axes[1,0].set_xticklabels(['Controls', 'Patients'])  # Set x-axis tick labels
 
-filtered_df.boxplot(column='n_sentence', by='PatientCat', ax=axes[1,1])
-axes[1,1].set_title('Num. Sentence')
+filtered_df.boxplot(column='nword', by='PatientCat', ax=axes[1,1])
+axes[1,1].set_title('Num. Words')
 axes[1,1].set_xlabel('Category')
 axes[1,1].set_ylabel('Num. Sentence')
 axes[1,1].set_xticklabels(['Controls', 'Patients'])  # Set x-axis tick labels

@@ -25,8 +25,8 @@ setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/sti
 #---------------------------------------------#
 #prepare data
 #---------------------------------------------#
-data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','stim','TLI_DISORG','num_all_words','num_content_words','num_repeated_words','entropyApproximate')]
+data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','stim','TLI_DISORG','num_all_words','num_content_words','num_repetition','nsen','entropyApproximate')]
 df <- df[df$stim != 'Picture4', ]
 
 df2 <- df %>% 
@@ -52,8 +52,11 @@ vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
 
 #-------------------------------
 # get data ready
-data <- read.csv(file = 'TOPSY_TwoGroups.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','nword','nsen','stim','entropyApproximate','entropyTransform','TransformSimilarity')]
+data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
+data <- read.csv(file = 'TOPSY_TwoGroups_concatenated.csv')
+
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','nsen', 'num_all_words', 'num_content_words','num_repetition','stim','entropyApproximate','entropyTransform','TransformSimilarity')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$entropyApproximate),]
 
@@ -63,9 +66,9 @@ df2 <- df %>%
   group_by(ID) %>%
   summarise(topic_mean = mean(as.numeric(entropyApproximate), na.rm = TRUE),
             topicSim_mean = mean(as.numeric(TransformSimilarity), na.rm = TRUE),
-            nword_mean = mean(as.numeric(nword), na.rm = TRUE),
-            #ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
-            #nrepeated_mean = mean(as.numeric(num_repeated_words), na.rm = TRUE),
+            nword_mean = mean(as.numeric(num_all_words), na.rm = TRUE),
+            ncontent_mean = mean(as.numeric(num_content_words), na.rm = TRUE),
+            nrepeated_mean = mean(as.numeric(num_repetition), na.rm = TRUE),
             nsen_mean = mean(as.numeric(nsen), na.rm = TRUE)) %>%
   ungroup()
 
@@ -80,7 +83,7 @@ df3 <- merge(df2, other_columns, by = "ID", all = TRUE)
 #----------------------------
 # get data containing all control demographic variables excluding SES: 34 HC + 70 FEP
 df4 <- df3 %>%
-  select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, topic_mean) %>% 
+  select(ID, PatientCat, Gender, AgeScan1, TLI_DISORG, TLI_IMPOV, nsen_mean, nword_mean, ncontent_mean, nrepeated_mean, topic_mean) %>% 
   mutate(across(c(ID, PatientCat, Gender), as.factor)) %>%
   drop_na()#na.omit()# Remove rows with NA values
 
@@ -135,6 +138,8 @@ summary(m)
 d1 <- df4 %>%
   mutate(
   nword_centered = scale(nword_mean, scale=FALSE),
+  ncontent_centered = scale(ncontent_mean, scale = FALSE),
+  nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
   TLI_centered = scale(TLI_DISORG, scale = FALSE)
 )
 
@@ -260,10 +265,10 @@ semPaths(mediation_results, whatLabels = 'est',
 #--------------------------------------------------------
 # lmer models
 # all participants
-m_grand4 = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
+m_grand4 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
-m_grand4b = lm(topic_mean ~ TLI_IMPOV + nword_mean + Gender + AgeScan1, data = df4) 
+m_grand4b = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4b)
 
 m_grand4c = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1, data = df4) 

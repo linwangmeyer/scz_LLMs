@@ -1,78 +1,20 @@
+from utils import read_data_fromtxt, calculate_entropy_app, cal_entropy_weighted, calculate_entropy_similarity
 import json
 import math
 import os
 import re
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-from bertopic import BERTopic
-from wordcloud import WordCloud
-from sentence_transformers import SentenceTransformer
 from scipy.stats import pearsonr
-
-def create_wordcloud(model, topic):
-    text = {word: value for word, value in model.get_topic(topic)}
-    wc = WordCloud(background_color="white", max_words=1000)
-    wc.generate_from_frequencies(text)
-    plt.imshow(wc, interpolation="bilinear")
-    plt.axis("off")
-    plt.show()
-    
-
-def read_data_fromtxt(fname):
-    '''input: the full path of the txt file
-    output: segemented sentences based on period marker from patients' speech''' 
-    with open(fname,'r') as file:
-        stim = file.read()
-    stim = stim.replace('\xa0', '')
-    stim = stim.replace('<','')
-    stim = stim.replace('>','') 
-    input_sections = [section.strip() for section in stim.split('* P') if section.strip() and not section.startswith('* E')]
-    processed_sections = []
-    for section in input_sections:
-        lines = section.split('\n')
-        lines = [line for line in lines if not line.startswith('* E')]
-        for text in lines:
-            text = re.sub(r'\.{3}', 'DOTDOTDOT', text)
-            text = re.sub(r'(?<=[A-Z])\.(?=[A-Z])', 'DOTABBREVIATION', text)
-            sentences = re.split(r'\.', text)
-            sentences = [sentence.strip().replace('DOTDOTDOT', '...').replace('DOTABBREVIATION', '.') for sentence in sentences if sentence.strip()]
-            processed_sections.append(sentences)
-        sentence_list = [sentence for sublist in processed_sections for sentence in sublist]
-    return sentence_list
-
-
-def calculate_entropy_app(probabilities):
-    """
-    Calculate the entropy of a list of probability values.
-    """
-    entropy = -sum(p * math.log2(p) for p in probabilities if p > 0)
-    return entropy
-
-
-def cal_entropy_weighted(topics,confidence):
-    '''Calculate the entropy of identified topics, weighted by their confidence values'''
-    topic_probs = {}
-    for topic, prob in zip(topics, confidence):
-        if topic in topic_probs:
-            topic_probs[topic] += prob
-        else:
-            topic_probs[topic] = prob
-    topic_probs_array = np.array(list(topic_probs.values()))
-    normalized_probs = topic_probs_array / np.sum(topic_probs_array)
-    entropy = -np.sum(normalized_probs * np.log2(normalized_probs))
-    return entropy
-
-
-def calculate_entropy_similarity(similarity_values):
-    """
-    Calculate the entropy of a list of similarity values.
-    """
-    probabilities = similarity_values / np.sum(similarity_values)
-    entropy = -sum(p * math.log2(p) for p in probabilities if p > 0)
-    return entropy
+from scipy import stats
+import nltk
+nltk.download('punkt')
+from nltk.tokenize import sent_tokenize
+from sentence_transformers import SentenceTransformer
+from bertopic import BERTopic
 
 ## --------------------------------------------------------------------
 # Load pre-trained models
@@ -80,7 +22,6 @@ def calculate_entropy_similarity(similarity_values):
 topic_model = BERTopic.load("MaartenGr/BERTopic_Wikipedia")
 #topic_model = BERTopic.load("davanstrien/chat_topics")
 # for a list of pre-trained topics, see: https://huggingface.co/models?library=bertopic&sort=downloads
-
 
 ## --------------------------------------------------------------------
 # Read data
@@ -96,194 +37,136 @@ for child_folder in child_folders:
     folder_file[child_folder] = text_files
 
 ## --------------------------------------------------------------------
-# Get data and conduct analysis: the approxiamte distribution approach
-window=20
-topic_entropy_app = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)  
-        stim_full = '. '.join(stim)      
-        appdistr_topic, _ = topic_model.approximate_distribution(stim_full,window=window,use_embedding_model=True)
-        entropy_val = calculate_entropy_app(appdistr_topic[0])
-        topic_entropy_app[filename.split('.')[0][6:]] = entropy_val
-
-df = pd.DataFrame(list(topic_entropy_app.items()), columns=['ID_stim', 'entropyApproximate'])
-df[['ID', 'stim']] = df['ID_stim'].str.split('_', expand=True)
-df.drop(columns=['ID_stim'], inplace=True)
-df = df[['ID', 'stim', 'entropyApproximate']]
-fname = os.path.join(parent_folder,'approximate_entropy.csv')
-df.to_csv(fname,index=False)
-
-# combine data and save them together with other variables
-entropy_Values = df.groupby('ID')['entropyApproximate'].mean().reset_index()
-entropy_Values['ID'] = entropy_Values['ID'].astype('int64')
-
-fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
-df_var = pd.read_csv(fname_var)
-df_merge = df_var.merge(entropy_Values,on='ID')
-df_merge.to_csv(fname_var,index=False)
-
-
-## --------------------------------------------------------------------
-# Get dominant topic and its associated probability for each sentence
-# Get topic distribution of full speech output
-## --------------------------------------------------------------------
-topic_entropy_trans = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)
-        domtopic, prob = topic_model.transform(stim)
-        entropy_transform = cal_entropy_weighted(domtopic,prob)
-        topic_entropy_trans[filename.split('.')[0][6:]] = entropy_transform
-df = pd.DataFrame(list(topic_entropy_trans.items()), columns=['ID_stim', 'entropyTransform'])
-df[['ID', 'stim']] = df['ID_stim'].str.split('_', expand=True)
-df.drop(columns=['ID_stim'], inplace=True)
-df = df[['ID', 'stim', 'entropyTransform']]
-fname = os.path.join(parent_folder,'transform_entropy.csv')
-df.to_csv(fname,index=False)
-       
-# combine data and save them together with other variables
-entropy_Values = df.groupby('ID')['entropyTransform'].mean().reset_index()
-entropy_Values['ID'] = entropy_Values['ID'].astype('int64')
-
-fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
-df_var = pd.read_csv(fname_var)
-df_merge = df_var.merge(entropy_Values,on='ID')
-df_merge.to_csv(fname_var,index=False)
-
-
-## --------------------------------------------------------------------
-# Get dominant topic and its associated probability for each sentence
-# Get pairwise similarity between identified topics
-## --------------------------------------------------------------------
-topic_sim = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)
-        domtopic, prob = topic_model.transform(stim)
-        
-        # get pairwise cosine similarity between identified topic embeddings normalized by number of sentences
-        sim_matrix = cosine_similarity(np.array(topic_model.topic_embeddings_)[domtopic,:])
-        labels = [topic_model.get_topic_info(label).Name.to_list()[0] for label in domtopic]
-        blow_index = np.tril_indices(sim_matrix.shape[0], k=-1)
-        mean_sim = np.mean(sim_matrix[blow_index])
-        topic_sim[filename.split('.')[0][6:]] = mean_sim
-df = pd.DataFrame(list(topic_sim.items()), columns=['ID_stim', 'TransformSimilarity'])
-df[['ID', 'stim']] = df['ID_stim'].str.split('_', expand=True)
-df.drop(columns=['ID_stim'], inplace=True)
-df = df[['ID', 'stim', 'TransformSimilarity']]
-df.loc[df['stim']=='Picture 1','stim'] = 'Picture1'
-fname = os.path.join(parent_folder,'transform_topic_similarity.csv')
-df.to_csv(fname,index=False)
-
-
-## --------------------------------------------------------------------
-# Use find_topic to get similarity/probability of the whole input
-## --------------------------------------------------------------------
-topic_entropy_sim = {}
-#top_n = 100
+# Get data and conduct analysis:
+file_list = []
+sentence_count_list = []
+word_count_list = []
+window=30
+topic_entropy_app = [] #the approxiamte distribution approach, moving window similarity
+topic_entropy_trans = [] #Get dominant topic and its associated probability for each sentence
+topic_sim = [] #dominant topic pairwise similarity
+topic_entropy_sim = [] #find_topic based on similarity
 top_n = 2376
 for foldername, filenames in folder_file.items():
     print(f'folder: {foldername}')
     for filename in filenames:
         print(f'file: {filename}')
         fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)  
-        stim_full = '. '.join(stim)      
+        stim = read_data_fromtxt(fname)
+        stim_all = [stim[key] for key in stim if key.startswith('P')] #select all responses from the patient
+        stim_full = ' '.join(stim_all)
+
+        # get file name
+        file_list.append(filename.split('.')[0][6:])
+        
+        # approximate approach
+        appdistr_topic, _ = topic_model.approximate_distribution(stim_full,window=window,use_embedding_model=True)
+        entropy_val = calculate_entropy_app(appdistr_topic[0])
+        topic_entropy_app.append(entropy_val)
+        
+        # dominant topic and then calculate entropy
+        stim_sen = sent_tokenize(stim_full)
+        domtopic, prob = topic_model.transform(stim_sen)
+        entropy_transform = cal_entropy_weighted(domtopic,prob)
+        topic_entropy_trans.append(entropy_transform)
+        
+        # get pairwise cosine similarity between identified topic embeddings normalized by number of sentences
+        sim_matrix = cosine_similarity(np.array(topic_model.topic_embeddings_)[domtopic,:])
+        labels = [topic_model.get_topic_info(label).Name.to_list()[0] for label in domtopic]
+        blow_index = np.tril_indices(sim_matrix.shape[0], k=-1)
+        mean_sim = np.mean(sim_matrix[blow_index])
+        topic_sim.append(mean_sim)
+        
+        # Use find_topic to get similarity/probability of the whole input
         _, similarity = topic_model.find_topics(stim_full,top_n=top_n)
         entropy_val = calculate_entropy_similarity(similarity)
-        topic_entropy_sim[filename.split('.')[0][6:]] = entropy_val
+        topic_entropy_sim.append(entropy_val)
+        
+        # Get number of sentences, number of words information
+        n_sentence = len(stim_sen)
+        n_word = len(stim_full.split())
+        
+        sentence_count_list.append(n_sentence)
+        word_count_list.append(n_word)
 
-df = pd.DataFrame(list(topic_entropy_sim.items()), columns=['ID_stim', 'entropySimilarity'])
-df[['ID', 'stim']] = df['ID_stim'].str.split('_', expand=True)
-df.drop(columns=['ID_stim'], inplace=True)
-df = df[['ID', 'stim', 'entropySimilarity']]
-fname = os.path.join(parent_folder,'similarity_entropy.csv')
+df = pd.DataFrame({
+    'filename': file_list,
+    'entropyApproximate': topic_entropy_app,
+    'entropyTransform': topic_entropy_trans,
+    'TransformSimilarity': topic_sim,
+    'entropySimilarity': topic_entropy_sim,
+    'nsen': sentence_count_list,
+    'nword': word_count_list
+})
+
+df[['ID', 'stim']] = df['filename'].str.split('_', expand=True)
+df.drop(columns=['filename'], inplace=True)
+
+fname = os.path.join(parent_folder,'topic_measures_concatenated.csv')
 df.to_csv(fname,index=False)
-
-# combine data and save them together with other variables
-entropy_Values = df.groupby('ID')['entropySimilarity'].mean().reset_index()
-entropy_Values['ID'] = entropy_Values['ID'].astype('int64')
-
-fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
-df_var = pd.read_csv(fname_var)
-df_merge = df_var.merge(entropy_Values,on='ID')
-df_merge.to_csv(fname_var,index=False)
-
-## --------------------------------------------------------------------
-# Get number of sentences, number of words information
-## --------------------------------------------------------------------
-topic_entropy_sim = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)
-        n_sentence = len(stim)
-        topic_entropy_sim[filename.split('.')[0][6:]] = n_sentence
-
-df = pd.DataFrame(list(topic_entropy_sim.items()), columns=['ID_stim', 'n_sentence'])
-df[['ID', 'stim']] = df['ID_stim'].str.split('_', expand=True)
-df.drop(columns=['ID_stim'], inplace=True)
-df = df[['ID', 'stim', 'n_sentence']]
-fname = os.path.join(parent_folder,'n_sentence.csv')
-df.to_csv(fname,index=False)
-
-# combine data and save them together with other variables
-entropy_Values = df.groupby('ID')['n_sentence'].mean().reset_index()
-entropy_Values['ID'] = entropy_Values['ID'].astype('int64')
-
-fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
-df_var = pd.read_csv(fname_var)
-df_merge = df_var.merge(entropy_Values,on='ID')
-df_merge.to_csv(fname_var,index=False)
 
 
 ## --------------------------------------------------------------------
 # Load results and statistical tests
 ## --------------------------------------------------------------------
-fname = os.path.join(parent_folder,'approximate_entropy.csv')
-df_app = pd.read_csv(fname)
-
-fname = os.path.join(parent_folder,'transform_entropy.csv')
-df_transform = pd.read_csv(fname)
-
-fname = os.path.join(parent_folder,'transform_topic_similarity.csv')
-df_transform_sim = pd.read_csv(fname)
-
-fname = os.path.join(parent_folder,'similarity_entropy.csv')
-df_sim = pd.read_csv(fname)
-
-fname = os.path.join(parent_folder,'n_sentence.csv')
-df_nsen = pd.read_csv(fname)
-
-fname = os.path.join(parent_folder,'word2vec.csv')
-df_w2v = pd.read_csv(fname)
+parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+fname = os.path.join(parent_folder,'topic_measures_concatenated.csv')
+df = pd.read_csv(fname)
+df['ID'] = df['ID'].astype('int64')
 
 fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
 df_var = pd.read_csv(fname_var)
 
-df_measures = df_app.merge(df_transform, on=['ID','stim']).merge(df_transform_sim, on=['ID','stim']).merge(df_sim, on=['ID','stim']).merge(df_nsen, on=['ID','stim']).merge(df_w2v, on=['ID','stim'])
+df_merge = df_var.merge(df,on='ID',how='outer')
 
-df_merge = df_var.merge(df_measures, on='ID',how='outer')
 filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
-
-fname_all = os.path.join(parent_folder,'TOPSY_all.csv')
+fname_all = os.path.join(parent_folder,'TOPSY_all_concatenated.csv')
 filtered_df.to_csv(fname_all,index=False)
 
 df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
+fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_concatenated.csv')
 df_goi.to_csv(fname_goi,index=False)
+
+
+## --------------------------------------------------------------------
+# Load results and statistical tests
+## --------------------------------------------------------------------
+
+## --------------------------------------------------------------------
+# Relationship between LTI and number of word
+parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_concatenated.csv')
+df = pd.read_csv(fname_var)
+index_to_remove = df[df['stim'] == 'Picture4'].index
+df = df.drop(index_to_remove)
+df['PatientCat'] = df['PatientCat'].astype('int')
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','nword','stim','entropyApproximate',]]
+filtered_df.dropna(inplace=True)
+r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'])
+print(f'correlation between TLI and Approximate Entropy estimation:'
+      f'\ncorrelation {r},'
+      f'\np value: {p_value}')
+sns.scatterplot(data=filtered_df, x='TLI_DISORG', y='entropyApproximate')
+slope, intercept = np.polyfit(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'], 1)
+regression_line = slope * filtered_df['TLI_DISORG'] + intercept
+plt.plot(filtered_df['TLI_DISORG'], regression_line, color='red', label='Linear Regression')
+plt.savefig('BERT_scatter_patients.eps', format='eps', bbox_inches='tight')
+plt.show()
+
+# Scatter plot, color coding patient group
+df_plot = filtered_df.groupby('ID')[['PatientCat','TLI_DISORG','nword','entropyApproximate']].mean().reset_index()
+sns.scatterplot(data=df_plot, x='TLI_DISORG', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_TLI_DISORG_Entropy.png', format='png', bbox_inches='tight')
+plt.show()
+
+sns.scatterplot(data=df_plot, x='TLI_DISORG', y='nword', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_TLI_DISORG_nwords.png', format='png', bbox_inches='tight')
+plt.show()
+
+sns.scatterplot(data=df_plot, x='nword', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
+plt.savefig('BERT_nwords_Entropy.png', format='png', bbox_inches='tight')
+plt.show()
+
 
 ## --------------------------------------------------------------------
 # Compare between two groups
@@ -297,7 +180,7 @@ filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['Patient
 filtered_df.dropna(inplace=True)
 df_ctrl = filtered_df[filtered_df['PatientCat']==1]
 df_scz = filtered_df.loc[(df['PatientCat'] == 2) & (filtered_df['TLI_DISORG']>2)]
-from scipy import stats
+
 t_statistic, p_value = stats.ttest_ind(df_ctrl['entropyTransform'].values, df_scz['entropyTransform'].values)
 u_statistic, p_value = stats.mannwhitneyu(df_ctrl['entropyTransform'].values, df_scz['entropyTransform'].values)
 
@@ -425,40 +308,6 @@ plot_path = os.path.join('/'.join(parent_folder.split('/')[:-2]),'plots')
 plt.savefig(os.path.join(plot_path,'scatter_LTI_Entropy'))
 plt.show()
 
-
-## --------------------------------------------------------------------
-# Relationship between LTI and number of word
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups.csv')
-df = pd.read_csv(fname_var)
-index_to_remove = df[df['stim'] == 'Picture4'].index
-df = df.drop(index_to_remove)
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','num_all_words','stim','entropyApproximate',]]
-filtered_df.dropna(inplace=True)
-r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'])
-print(f'correlation between TLI and Approximate Entropy estimation:'
-      f'\ncorrelation {r},'
-      f'\np value: {p_value}')
-sns.scatterplot(data=filtered_df, x='TLI_DISORG', y='entropyApproximate')
-slope, intercept = np.polyfit(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'], 1)
-regression_line = slope * filtered_df['TLI_DISORG'] + intercept
-plt.plot(filtered_df['TLI_DISORG'], regression_line, color='red', label='Linear Regression')
-plt.savefig('BERT_scatter_patients.eps', format='eps', bbox_inches='tight')
-plt.show()
-
-# Scatter plot, color coding patient group
-df_plot = filtered_df.groupby('ID')[['PatientCat','TLI_DISORG','num_all_words','entropyApproximate']].mean().reset_index()
-sns.scatterplot(data=df_plot, x='TLI_DISORG', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
-plt.savefig('BERT_TLI_Entropy.png', format='png', bbox_inches='tight')
-plt.show()
-
-sns.scatterplot(data=df_plot, x='TLI_DISORG', y='num_all_words', hue='PatientCat', palette=['blue', 'red'])
-plt.savefig('BERT_TLI_nwords.png', format='png', bbox_inches='tight')
-plt.show()
-
-sns.scatterplot(data=df_plot, x='num_all_words', y='entropyApproximate', hue='PatientCat', palette=['blue', 'red'])
-plt.savefig('BERT_nwords_Entropy.png', format='png', bbox_inches='tight')
-plt.show()
 
 ## --------------------------------------------------------------------
 # Relationship between panss and entropy

@@ -40,7 +40,7 @@ df2 <- df2[!is.na(df2$entropyApproximate), ]
 #visualize data
 x1 <- df2$entropyApproximate[df2$PatientCat==1]
 x2 <- df2$entropyApproximate[df2$PatientCat==2]
-vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
+#vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
 
 
 ############################run models###################
@@ -53,8 +53,8 @@ vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
 #-------------------------------
 # get data ready
 data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
-data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
-data <- read.csv(file = 'TOPSY_TwoGroups_concatenated.csv')
+#data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
+#data <- read.csv(file = 'TOPSY_TwoGroups_concatenated.csv')
 
 df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','nsen', 'num_all_words', 'num_content_words','num_repetition','stim','entropyApproximate','entropyTransform','TransformSimilarity')]
 df <- df[df$stim != 'Picture4', ]
@@ -62,6 +62,7 @@ df <- df[!is.na(df$entropyApproximate),]
 
 df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
 
+#average across stims
 df2 <- df %>%
   group_by(ID) %>%
   summarise(topic_mean = mean(as.numeric(entropyApproximate), na.rm = TRUE),
@@ -121,17 +122,39 @@ df7 <- df3 %>%
 sum(df7$PatientCat==1) #HC: 24
 sum(df7$PatientCat==2) #FEP: 40
 
-
 #----------------------------
-# get data with utterance of 100-250 words: 34 HC + 48 FEP
-df8 = df4[df4$nword_mean > 100 & df4$nword_mean < 250,]
+# scatter plot
+df_plot <- aggregate(cbind(TLI_DISORG, nword_mean, topic_mean) ~ ID + PatientCat, data=df4, FUN=mean)
+labels <- c("Controls", "FEP")
 
-sum(df8$PatientCat==1) #HC: 34
-sum(df8$PatientCat==2) #FEP: 48
+# Scatter plot of TLI_DISORG vs. entropyApproximate
+p1 <- ggplot(df_plot, aes(x=TLI_DISORG, y=topic_mean, color=factor(PatientCat))) +
+  geom_point() +
+  labs(x="TLI_DISORG", y="Entropy Approximate") +
+  scale_color_manual(values=c("blue", "red"), labels = labels) +
+  ggtitle("TLI_DISORG vs. Entropy") +
+  theme_minimal()
+ggsave("../plots/TLI_entropy.png", plot = p1, width = 6, height = 4, units = "in", dpi = 300)
 
-df10 <- df4[df4$PatientCat==2,]
-m = lm(TLI_DISORG ~ topic_mean + Gender + AgeScan1, data = df10) 
-summary(m)
+# Scatter plot of TLI_DISORG vs. nword
+p2 <- ggplot(df_plot, aes(x=TLI_DISORG, y=nword_mean, color=factor(PatientCat))) +
+  geom_point() +
+  labs(x="TLI_DISORG", y="nword") +
+  scale_color_manual(values=c("blue", "red"), labels = labels) +
+  ggtitle("TLI_DISORG vs. nword") +
+  theme_minimal()
+ggsave("../plots/TLI_nword.png", plot = p2, width = 6, height = 4, units = "in", dpi = 300)
+
+# Scatter plot of nword vs. entropyApproximate
+p3 <- ggplot(df_plot, aes(x=nword_mean, y=topic_mean, color=factor(PatientCat))) +
+  geom_point() +
+  labs(x="nword", y="Entropy Approximate") +
+  scale_color_manual(values=c("blue", "red"), labels = labels) +
+  ggtitle("nword vs. Entropy") +
+  theme_minimal()
+ggsave("../plots/nword_entropy.png", plot = p3, width = 6, height = 4, units = "in", dpi = 300)
+
+
 
 #----------------------------------------------------------
 # mean center data to get effect at the mean centered level
@@ -140,34 +163,67 @@ d1 <- df4 %>%
   nword_centered = scale(nword_mean, scale=FALSE),
   ncontent_centered = scale(ncontent_mean, scale = FALSE),
   nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
-  TLI_centered = scale(TLI_DISORG, scale = FALSE)
+  TLI_pos_centered = scale(TLI_DISORG, scale = FALSE),
+  TLI_neg_centered = scale(TLI_IMPOV, scale = FALSE)
 )
 
+d2 <- df5 %>%
+  mutate(
+    nword_centered = scale(nword_mean, scale=FALSE),
+    ncontent_centered = scale(ncontent_mean, scale = FALSE),
+    nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
+    TLI_pos_centered = scale(TLI_DISORG, scale = FALSE),
+    TLI_neg_centered = scale(TLI_IMPOV, scale = FALSE),
+    SES_centered = scale(SES, scale = FALSE)
+    )
+
+d3 <- df6 %>%
+  mutate(
+    nword_centered = scale(nword_mean, scale=FALSE),
+    ncontent_centered = scale(ncontent_mean, scale = FALSE),
+    nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
+    TLI_pos_centered = scale(TLI_DISORG, scale = FALSE),
+    TLI_neg_centered = scale(TLI_IMPOV, scale = FALSE),
+    WM_centered = scale(DSST, scale = FALSE),
+    ExControl_centered = scale(Trails.B, scale = FALSE),
+    SemFluency_centered = scale(Category.Fluency..animals., scale = FALSE)
+  )
+
+contrasts(d1$Gender) <- c(-.5, .5)
+contrasts(d2$Gender) <- c(-.5, .5)
+contrasts(d3$Gender) <- c(-.5, .5)
+
+contrasts(d1$PatientCat) <- c(-.5, .5)
+contrasts(d2$PatientCat) <- c(-.5, .5)
+contrasts(d3$PatientCat) <- c(-.5, .5)
+
 #--------------------------------------------------------
-# test interaction between TLI and nword
-m_grand4 = lm(topic_mean ~ TLI_centered*nword_centered + Gender + AgeScan1, data = d1) 
-summary(m_grand4)
+# test interaction between TLI_pos and nword
+m1 = lm(topic_mean ~ TLI_pos_centered*nword_centered + Gender + AgeScan1, data = d1) 
+summary(m1)
 
-# check multicollinearity
-car::vif(m_grand4)
+m2 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + Gender + AgeScan1, data = d2) 
+summary(m2)
 
+m3 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + WM_centered + ExControl_centered + SemFluency_centered + Gender + AgeScan1, data = d3) 
+summary(m3)
 
+#-------------------------------
 ## Calculate the trends by condition: for each level of nword_centered
-emTrends_m4 <- emtrends(m_grand4, "nword_centered", var = "TLI_centered",
-                        at=list(nword_centered = c(min(d1$nword_centered), #n=49.67
-                                                 -30.85, # 1st quantile: n=121.25
-                                                 0, # mean: n=152.10
-                                                 26.65, # 3rd quantile: n=178.75
-                                                 50,
-                                                 100,
-                                                 max(d1$nword_centered)))) # max: n=430.67
-summary(emTrends_m4, infer= TRUE)
+emTrends_m1 <- emtrends(m1, "nword_centered", var = "TLI_pos_centered",
+                        at=list(nword_centered = c(min(d1$nword_centered), #n=-78
+                                                quantile(d1$nword_centered, probs = 0.25), # 1st quantile: n=-24
+                                                0, # mean: n=152.10
+                                                quantile(d1$nword_centered, probs = 0.5), # median: n=-0.8 
+                                                quantile(d1$nword_centered, probs = 0.75), # 3rd quantile: n=22
+                                                 max(d1$nword_centered)))) # max: n=110
+summary(emTrends_m1, infer= TRUE)
 
 # visualize the interactions: TLI vs. entropy for each Nword level
-m_grand4 %>%
-  interactions::interact_plot(pred = TLI_centered,
+m1 %>%
+  interactions::interact_plot(pred = TLI_pos_centered,
                               modx = nword_centered,
-                              modx.values = c(-90,-50,50,100),
+                              modx.values = c(-50,0,50,100),
                               interval = TRUE,
                               int.type = "confidence",
                               legend.main = "Nword_meanCentered:") +
@@ -182,18 +238,18 @@ m_grand4 %>%
 
 
 # Create bins for TLI_disorg and nword_mean
-d1$TLI_disorg_bin <- cut(d1$TLI_DISORG,
-                         breaks = c(-Inf, 1, 3, Inf),
-                         labels = c('<1','1-3','>3'),
+d1$TLI_bin <- cut(d1$TLI_pos_centered,
+                         breaks = c(-Inf, -0.7, 0.3, Inf),
+                         labels = c('low','medium','high'),
                          right = FALSE)
 
-d1$nword_mean_bin <- cut(d1$nword_mean, 
-                         breaks = c(-Inf, 100, 250, Inf), 
-                         labels = c("<100", "100-250", ">250"),
+d1$nword_bin <- cut(d1$nword_centered, 
+                         breaks = c(-Inf, -25, 25, Inf), 
+                         labels = c("short", 'medium', "long"),
                          right = FALSE)
 
 # Create the bar plot
-ggplot(d1, aes(x = TLI_disorg_bin, y = topic_mean, fill = nword_mean_bin)) +
+ggplot(d1, aes(x = TLI_bin, y = topic_mean, fill = nword_bin)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(x = "TLI_pos", y = "Entropy") +
   scale_fill_discrete(name = "nword") +  # Customize legend title
@@ -202,18 +258,15 @@ ggplot(d1, aes(x = TLI_disorg_bin, y = topic_mean, fill = nword_mean_bin)) +
 
 
 ## Calculate the trends by condition: for each level of TLI
-emTrends_m4 <- emtrends(m_grand4, "TLI_centered", var = "nword_centered",
-                        at=list(TLI_centered = c(min(d1$TLI_centered), #min
-                                                 -0.7260, #1st Qu    
-                                                 0, # mean
-                                                 0.3365, # 3rd Qu
-                                                 max(d1$TLI_centered)))) #max
+emTrends_m1 <- emtrends(m1, "TLI_pos_centered", var = "nword_centered",
+                        at=list(TLI_pos_centered = c(-0.5,0,0.5,1,5))) #max
+summary(emTrends_m1, infer= TRUE)
 
 # visualize the interactions: TLI vs. nwords for each TLI level
-m_grand4 %>%
+m1 %>%
   interactions::interact_plot(pred = nword_centered,
-                              modx = TLI_centered,
-                              modx.values = c(-0.7259615,0,0.3365,5.024038),
+                              modx = TLI_pos_centered,
+                              modx.values = c(-0.7259615,0,0.3365,3),
                               interval = TRUE,
                               int.type = "confidence",
                               legend.main = "TLI:") +
@@ -225,6 +278,24 @@ m_grand4 %>%
     #legend.justification = c(-0.1, 1.1),
     legend.background = element_rect(color = "black"),
     legend.key.width = unit(1.5, "cm"))
+
+
+
+#---------- group categorical effect
+# all participants
+m4 = lm(topic_mean ~ PatientCat*nword_mean + Gender + AgeScan1, data = d1) 
+summary(m4)
+
+# only participants with SES
+m5 = lm(topic_mean ~ PatientCat*nword_mean + Gender + AgeScan1 + SES, data = d2) 
+summary(m5)
+
+
+# only participants with both SES and cognitive measures
+m6 = lm(topic_mean ~ PatientCat*nword_mean + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = d3) 
+summary(m6)
+
+
 
 
 #--------------------------------------------------------
@@ -263,12 +334,16 @@ semPaths(mediation_results, whatLabels = 'est',
          intercepts=FALSE)
 
 #--------------------------------------------------------
-# lmer models
+# lmer models: without interactions
 # all participants
 m_grand4 = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4)
 
-m_grand4b = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df4) 
+# check multicollinearity
+car::vif(m_grand4)
+
+
+m_grand4b = lm(topic_mean ~ TLI_DISORG + Gender + AgeScan1, data = df4) 
 summary(m_grand4b)
 
 m_grand4c = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1, data = df4) 
@@ -310,22 +385,6 @@ summary(m_grand7)
 m_grand7b = lm(topic_mean ~ TLI_IMPOV + PANSS.Pos + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df7) 
 summary(m_grand7b)
 
-# only participants with utterance between 100-250 words: 34 HC + 49 FEP
-m = lm(topic_mean ~ TLI_IMPOV + Gender + AgeScan1, data = df8) 
-summary(m)
-
-m = lm(topic_mean ~ TLI_DISORG + nword_mean + Gender + AgeScan1, data = df8) 
-summary(m)
-
-m = lm(topic_mean ~ TLI_IMPOV + nsen_mean + Gender + AgeScan1, data = df8) 
-summary(m)
-
-m = lm(topic_mean ~ TLI_IMPOV + ncontent_mean + Gender + AgeScan1, data = df8) 
-summary(m)
-
-
-m = lm(TLI_IMPOV ~  nword_mean + Gender + AgeScan1, data = df8) 
-summary(m)
 
 #---------- continuous effect
 # only patients
@@ -344,28 +403,6 @@ summary(m_grand4c)
 m_grand4d = lm(topic_mean ~ TLI_DISORG + ncontent_mean + Gender + AgeScan1, data = df4) 
 summary(m_grand4d)
 
-
-#---------- group effect
-# all participants
-m_grand1 = lm(topic_mean ~ PatientCat + nword_mean + Gender + AgeScan1, data = df4) 
-summary(m_grand1)
-
-m_grand1b = lm(topic_mean ~ PatientCat + nsen_mean + Gender + AgeScan1, data = df4) 
-summary(m_grand1b)
-
-# only participants with SES
-m_grand2 = lm(topic_mean ~ PatientCat + nword_mean + Gender + AgeScan1 + SES, data = df5) 
-summary(m_grand2)
-
-m_grand2b = lm(topic_mean ~ PatientCat + nsen_mean + Gender + AgeScan1 + SES, data = df5) 
-summary(m_grand2b)
-
-# only participants with both SES and cognitive measures
-m_grand3 = lm(topic_mean ~ PatientCat + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nword_mean, data = df6) 
-summary(m_grand3)
-
-m_grand3b = lm(topic_mean ~ PatientCat + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals. + nsen_mean, data = df6) 
-summary(m_grand3b)
 
 
 

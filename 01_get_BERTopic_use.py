@@ -93,7 +93,7 @@ df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
 df['PatientCat'] = df['PatientCat'].astype('int')
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','nword','stim','entropyApproximate',]]
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','num_all_words','stim','entropyApproximate',]]
 filtered_df.dropna(inplace=True)
 r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'])
 print(f'correlation between TLI and Approximate Entropy estimation:'

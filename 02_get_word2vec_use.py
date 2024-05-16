@@ -71,7 +71,7 @@ with open(os.path.join(parent_folder, 'unique_words_spontaneous.txt'), 'w') as f
 mode_label = ['before_time_up','spontaneous', 'full_speech']
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
 
-for k in range(3):
+for k in range(1):
     mode = mode_label[k]
     outputfile = outputfile_label[k]
 

@@ -68,17 +68,18 @@ def get_speech_before_time_up(stim):
     '''Isolate patient speech prior to 1 min ends
     input: dictionary containing multiple turns
     output: list of patients speech'''
-    keys = stim.keys()
-    if len(keys) <= 2:
-        selected_values = stim['P1']
-    elif len(keys) <= 4 and ('time' in stim.get('E2', '') or 'minute' in stim.get('E2', '')):
-        selected_values = stim['P1']
-    elif len(keys) <= 4 and ('time' in stim.get('E4', '') or 'minute' in stim.get('E4', '')):
-        selected_values = [stim['P1'], stim['P3']]
-    elif len(keys) <= 6 and ('time' in stim.get('E6', '') or 'minute' in stim.get('E6', '')):
-        selected_values = [stim['P1'], stim['P3'], stim['P5']]
+    selected_values = []
+    for i in range(2, len(stim), 2):
+        if 'time' in stim.get('E{}'.format(i), '') or 'minute' in stim.get('E{}'.format(i), '') or 'All right and now' in stim.get('E{}'.format(i), ''):
+            # Combine the speech of previous patients
+            for j in range(1, i, 2):
+                selected_values.append(stim['P{}'.format(j)])
+            break  # Stop iterating as soon as 'time' or 'minute' is found
     else:
-        selected_values = [stim[key] for key in stim if key.startswith('P')] #select all responses from the patient
+        # If 'time' or 'minute' is not found, select all responses from the patient
+        for key in stim:
+            if key.startswith('P'):
+                selected_values.append(stim[key])
     return selected_values
 
 

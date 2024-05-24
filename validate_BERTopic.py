@@ -48,7 +48,7 @@ def calculate_topic_entropy(stimulus, window=30):
 
 
 #----------- Gegerate stimuli ---------
-key_fname = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/MASC-MEG/lab_api_key.txt'
+key_fname = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/MASC-MEG/my_api_key.txt'
 with open(key_fname,'r') as file:
     key = file.read()
 
@@ -57,8 +57,8 @@ client = OpenAI(
 )
 
 prompts = {
-    "hc": "Can you write a paragraph with 200 words that describes a picture?",
-    "scz": "Can you write a paragraph with 200 words that describes a picture with multiple topics?"
+    "hc": "Please write a paragraph with 200 words that describes a picture with a random topic.",
+    "scz": "Please write a paragraph with 200 words that describes a picture with multiple topics."
 }
 
 responses = []

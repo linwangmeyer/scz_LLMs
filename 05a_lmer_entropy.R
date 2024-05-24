@@ -91,6 +91,11 @@ df4 <- df3 %>%
 sum(df4$PatientCat==1) #HC: 34
 sum(df4$PatientCat==2) #FEP: 70
 
+summary(df4$nword_mean)
+df4 <- df4[df4$nword_mean>90,]
+
+
+df4 <- df4[df4$PatientCat==2,]
 
 #----------------------------
 # get data containing all control demographic variables including SES: 33 HC + 60 FEP
@@ -190,11 +195,12 @@ d3 <- df6 %>%
   )
 
 contrasts(d1$Gender) <- c(-.5, .5)
-contrasts(d2$Gender) <- c(-.5, .5)
-contrasts(d3$Gender) <- c(-.5, .5)
-
 contrasts(d1$PatientCat) <- c(-.5, .5)
+
+contrasts(d2$Gender) <- c(-.5, .5)
 contrasts(d2$PatientCat) <- c(-.5, .5)
+
+contrasts(d3$Gender) <- c(-.5, .5)
 contrasts(d3$PatientCat) <- c(-.5, .5)
 
 #--------------------------------------------------------

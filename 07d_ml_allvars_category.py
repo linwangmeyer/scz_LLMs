@@ -50,21 +50,21 @@ def model_evaluate(y_test,y_pred,show_metric=True, best_params=None):
 # load data
 # ------------------------------------------
 parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_all.csv')
+fname_var = os.path.join(parent_folder,'TOPSY_all_1min.csv')
 df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
 '''filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
-                         ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_sentence', 
+                         ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'num_all_words', 
                           'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 filtered_df.dropna(inplace=True)
-df_avg = filtered_df.groupby('ID')[['PatientCat','PANSS Pos','TLI_DISORG','n_sentence','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
+df_avg = filtered_df.groupby('ID')[['PatientCat','PANSS Pos','TLI_DISORG','num_all_words','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
 '''
 
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID', 'PatientCat', 'stim', 'n_sentence', 
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID', 'PatientCat', 'stim', 'num_all_words', 
                           'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 filtered_df.dropna(inplace=True)
-df_avg = filtered_df.groupby('ID')[['PatientCat','n_sentence','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
+df_avg = filtered_df.groupby('ID')[['PatientCat','num_all_words','entropyApproximate','n_1','n_2','n_3','n_4','n_5']].mean().reset_index()
 
 # load data from Tori
 df_gpt = pd.read_csv(parent_folder+'slopes_without_controls_forLin.csv')

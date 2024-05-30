@@ -27,7 +27,7 @@ for child_folder in child_folders:
 # Calculate topic measures: speech of different conditions
 mode_label = ['before_time_up','spontaneous', 'full_speech']
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
-k = 0
+k = 1
 mode = mode_label[k]
 outputfile = outputfile_label[k]
 
@@ -52,8 +52,12 @@ result_df['ID'] = result_df['ID'].astype('int64')
 fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
 result_df.to_csv(fname, index=False)
 
-
-
+result_df = pd.read_csv(fname)
+result_df.loc[result_df['stim'] == 'Picture 1','stim']='Picture1'
+result_df = result_df.drop(result_df[result_df['stim'] == 'Picture4'].index)
+result_df.dropna(subset=['stim'], inplace=True)
+fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+result_df.to_csv(fname, index=False)
 
 ## --------------------------------------------------------------------
 # Combine with subject info

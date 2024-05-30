@@ -103,6 +103,12 @@ for k in range(3):
     outputfile = outputfile_label[k]
     fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
     df_w2v = pd.read_csv(fname)
+    
+    df_w2v.loc[df_w2v['stim'] == 'Picture 1','stim']='Picture1'
+    df_w2v = df_w2v.drop(df_w2v[df_w2v['stim'] == 'Picture4'].index)
+    df_w2v.dropna(subset=['stim'], inplace=True)
+    fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+    df_w2v.to_csv(fname, index=False)
 
     fname_var = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv') #containing topic measures
     df_var = pd.read_csv(fname_var)

@@ -91,11 +91,11 @@ df4 <- df3 %>%
 sum(df4$PatientCat==1) #HC: 34
 sum(df4$PatientCat==2) #FEP: 70
 
-summary(df4$nword_mean)
-df4 <- df4[df4$nword_mean>90,]
+#summary(df4$nword_mean)
+#df4 <- df4[df4$nword_mean>90,]
 
 
-df4 <- df4[df4$PatientCat==2,]
+#df4 <- df4[df4$PatientCat==2,]
 
 #----------------------------
 # get data containing all control demographic variables including SES: 33 HC + 60 FEP
@@ -205,7 +205,7 @@ contrasts(d3$PatientCat) <- c(-.5, .5)
 
 #--------------------------------------------------------
 # test interaction between TLI_pos and nword
-m1 = lm(topic_mean ~ TLI_pos_centered*nword_centered + Gender + AgeScan1, data = d1) 
+m1 = lm(topic_mean ~ TLI_neg_centered*nword_centered + Gender + AgeScan1, data = d1) 
 summary(m1)
 
 m2 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + Gender + AgeScan1, data = d2) 
@@ -245,13 +245,13 @@ m1 %>%
 
 # Create bins for TLI_disorg and nword_mean
 d1$TLI_bin <- cut(d1$TLI_pos_centered,
-                         breaks = c(-Inf, -0.7, 0.3, Inf),
+                         breaks = c(-Inf, 1, 3, Inf),
                          labels = c('low','medium','high'),
                          right = FALSE)
 
 d1$nword_bin <- cut(d1$nword_centered, 
-                         breaks = c(-Inf, -25, 25, Inf), 
-                         labels = c("short", 'medium', "long"),
+                         breaks = c(-Inf, -50, 0, 50, Inf), 
+                         labels = c("short", 'short_medium', "long_medium", "long"),
                          right = FALSE)
 
 # Create the bar plot
@@ -289,16 +289,19 @@ m1 %>%
 
 #---------- group categorical effect
 # all participants
-m4 = lm(topic_mean ~ PatientCat*nword_mean + Gender + AgeScan1, data = d1) 
+d1$PatientCat <- relevel(factor(d1$PatientCat), ref = '1')
+contrasts(d1$PatientCat) <- c(-.5, .5)
+m4 = lm(topic_mean ~ PatientCat*nword_centered + Gender + AgeScan1, data = d1) 
 summary(m4)
+#anova(m4)
 
 # only participants with SES
-m5 = lm(topic_mean ~ PatientCat*nword_mean + Gender + AgeScan1 + SES, data = d2) 
+m5 = lm(topic_mean ~ PatientCat*nword_centered + Gender + AgeScan1 + SES, data = d2) 
 summary(m5)
 
 
 # only participants with both SES and cognitive measures
-m6 = lm(topic_mean ~ PatientCat*nword_mean + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = d3) 
+m6 = lm(topic_mean ~ PatientCat*nword_centered + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = d3) 
 summary(m6)
 
 

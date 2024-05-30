@@ -207,42 +207,45 @@ contrasts(d3$PatientCat) <- c(-.5, .5)
 
 m1 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + ncontent_centered + Gender + AgeScan1, data = d1) 
 summary(m1)
+anova(m1)
 
-m2 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + nrepeated_centered + Gender + AgeScan1, data = d1) 
+m2 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d1) 
 summary(m2)
+anova(m2)
 
 m3 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + ncontent_centered + Gender + AgeScan1, data = d1) 
 summary(m3)
+anova(m3)
 
-m4 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + nrepeated_centered + nrepeated_mean + Gender + AgeScan1, data = d1) 
+m4 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d1) 
 summary(m4)
-
+anova(m4)
 
 # only participants with SES
 m1 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + ncontent_centered + Gender + AgeScan1, data = d2) 
 summary(m1)
 
-m2 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + nrepeated_centered + Gender + AgeScan1, data = d2) 
+m2 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d2) 
 summary(m2)
 
 m3 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + ncontent_centered + Gender + AgeScan1, data = d2) 
 summary(m3)
 
-m4 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + nrepeated_centered + Gender + AgeScan1, data = d2) 
+m4 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d2) 
 summary(m4)
 
 
 # only participants with both SES and cognitive measures
-m1 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + ncontent_centered + Gender + AgeScan1, data = d2) 
+m1 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + WM_centered + Trails.B + Category.Fluency..animals. + ncontent_centered + Gender + AgeScan1, data = d3) 
 summary(m1)
 
-m2 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + nrepeated_centered + Gender + AgeScan1, data = d2) 
+m2 = lmer(w2v_mean ~ wordpos*TLI_pos_centered + (1 | ID) + SES + WM_centered + Trails.B + Category.Fluency..animals. + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d3) 
 summary(m2)
 
-m3 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + ncontent_centered + Gender + AgeScan1, data = d2) 
+m3 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + nrepeated_centered + Trails.B + Category.Fluency..animals. + ncontent_centered + Gender + AgeScan1, data = d3) 
 summary(m3)
 
-m4 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + DSST + Trails.B + Category.Fluency..animals. + nrepeated_centered + Gender + AgeScan1, data = d2) 
+m4 = lmer(w2v_mean ~ wordpos*TLI_neg_centered + (1 | ID) + SES + WM_centered + Trails.B + Category.Fluency..animals. + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d3) 
 summary(m4)
 
 
@@ -262,24 +265,37 @@ summary(m_grand7b)
 # all participants
 m1 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + ncontent_centered + Gender + AgeScan1, data = d1) 
 summary(m1)
+anova(m1)
 
-m1 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + nrepeated_centered + Gender + AgeScan1, data = d1) 
+m1 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d1) 
 summary(m1)
+anova(m1)
 
 # only participants with SES
 m2 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + SES + ncontent_centered + Gender + AgeScan1, data = d2) 
 summary(m2)
 
-m2 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + SES + nrepeated_centered + Gender + AgeScan1, data = d2) 
+m2 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + SES + ncontent_centered + nrepeated_centered + Gender + AgeScan1, data = d2) 
 summary(m2)
 
 # only participants with both SES and cognitive measures
 m3 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + ncontent_centered + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1, data = d3) 
 summary(m3)
 
-m3 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + nrepeated_centered + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1, data = d3) 
+m3 = lmer(w2v_mean ~ wordpos*PatientCat + (1 | ID) + ncontent_centered + nrepeated_centered + DSST + Trails.B + Category.Fluency..animals. + Gender + AgeScan1, data = d3) 
 summary(m3)
 
+
+# Scatter plot of wordpos vs. word2vec, separated by PatientCat
+p1 <- ggplot(d1, aes(x=wordpos, y=w2v_mean, color=factor(PatientCat))) +
+  geom_point() +
+  labs(x="wordpos", y="Word2vec") +
+  scale_color_manual(values=c("blue", "red"), labels = labels) +
+  ggtitle("wordpos vs. Word2vec") +
+  theme_minimal()
+ggsave("../plots/wordpos_word2vec.png", plot = p1, width = 6, height = 4, units = "in", dpi = 300)
+
+# Bar plot of wordpos vs. word2vec, separated by PatientCat: For Ivi
 
 
 #-------------------
@@ -290,7 +306,7 @@ anova(m1)
 
 m_grand4 = lm(w2v_mean ~ TLI_pos_centered*nword_centered + Gender + AgeScan1, data = d1 %>% filter(wordpos == "n_1")) 
 summary(m_grand4)
-
+anova(m_grand4)
 
 ## Calculate the trends by condition
 emTrends_m4 <- emtrends(m_grand4, "TLI_centered", var = "nword_centered",

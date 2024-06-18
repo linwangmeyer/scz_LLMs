@@ -467,3 +467,49 @@ for col in similarity_columns:
     print(f'correlation between TLI and similarity for {col}:'
         f'\ncorrelation {r},p value: {p_value}')
 
+#----------------------------------------------------------------------
+# Check chronic patients: PatientCat = 3
+## --------------------------------------------------------------------
+fname_all = os.path.join(parent_folder,'TOPSY_all_spontaneous.csv')
+df = pd.read_csv(fname_all)
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 3), ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_segment', 
+                          'entropyApproximate','senN_1', 'senN_2', 'senN_3', 'senN_4']]
+filtered_df.dropna(inplace=True)
+df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_segment', 'senN_4', 'senN_3', 'senN_2', 'senN_1']].mean()
+
+from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+
+# for each position, test group differences
+similarity_columns = ['senN_4', 'senN_3', 'senN_2', 'senN_1']
+for col in similarity_columns:
+    group_1 = df_check[df_check['PatientCat'] == 1][col]
+    group_2 = df_check[df_check['PatientCat'] == 3][col]
+    t_statistic, p_value = stats.ttest_ind(group_1.values, group_2.values)
+    # Alternatively, perform Mann-Whitney U test (non-parametric test)
+    # u_statistic, p_value = stats.mannwhitneyu(group_1, group_2)
+    print(f'word2vec similarity before word n and {col}:')
+    print(f'T-Statistic: {t_statistic}, P-Value: {p_value}')
+    print('-------------------------')
+    
+    
+similarity_columns = ['senN_1', 'senN_2', 'senN_3', 'senN_4']
+for col in similarity_columns:
+    r, p_value = pearsonr(df_check.loc[df_check['PatientCat'] == 3,'TLI_DISORG'], df_check.loc[df_check['PatientCat'] == 3,col])
+    print(f'correlation between TLI and similarity for {col}:'
+        f'\ncorrelation {r},p value: {p_value}')
+
+
+df_melted = df.melt(id_vars=['PatientCat'], value_vars=['senN_1', 'senN_2', 'senN_3', 'senN_4'],
+                    var_name='Condition', value_name='Value')
+
+# Create the bar plot
+plt.figure(figsize=(12, 6))
+sns.barplot(data=df_melted, x='Condition', y='Value', hue='PatientCat')
+plt.title('Bar Plots for senN_x Conditions Separated by PatientCat')
+plt.xlabel('Condition')
+plt.ylabel('Value')
+plt.legend(title='Patient Category')
+plt.show()

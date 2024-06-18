@@ -135,7 +135,7 @@ df = pd.read_csv(fname_var)
 index_to_remove = df[df['stim'] == 'Picture4'].index
 df = df.drop(index_to_remove)
 filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
-                         ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_sentence', 
+                         ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_segment', 
                           'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 filtered_df.dropna(inplace=True)
 columns_to_melt = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
@@ -153,7 +153,7 @@ plt.show()
 
 
 # bar plot
-df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_sentence', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
+df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_segment', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
 w2v = df_check.groupby('PatientCat')[['n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
 w2v = w2v.reset_index()
 w2v.drop('PatientCat', axis=1, inplace=True)
@@ -273,3 +273,44 @@ for col in similarity_columns:
     plt.plot(df_check['entropyApproximate'], regression_line, color='red', label='Linear Regression')
     plt.savefig(f'w2v_{col}_vs_entropyApproximate.png') 
     plt.close() 
+
+#-------------------------------------------
+# Check chronic patients: PatientCat = 3
+#-------------------------------------------
+
+from scipy import stats
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+fname_all = os.path.join(parent_folder,'TOPSY_all_spontaneous.csv')
+df = pd.read_csv(fname_all)
+filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_segment', 
+                          'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
+filtered_df.dropna(inplace=True)
+df_check = filtered_df.groupby('ID')[['PatientCat','entropyApproximate','TLI_DISORG','n_segment', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']].mean()
+
+
+# for each position, test group differences
+similarity_columns = ['n_1', 'n_2', 'n_3', 'n_4', 'n_5']
+for col in similarity_columns:
+    group_1 = df_check[df_check['PatientCat'] == 1][col]
+    group_2 = df_check[df_check['PatientCat'] == 2][col]
+    t_statistic, p_value = stats.ttest_ind(group_1.values, group_2.values)
+    # Alternatively, perform Mann-Whitney U test (non-parametric test)
+    # u_statistic, p_value = stats.mannwhitneyu(group_1, group_2)
+    print(f'word2vec similarity before word n and {col}:')
+    print(f'T-Statistic: {t_statistic}, P-Value: {p_value}')
+    print('-------------------------')
+    
+
+df_melted = df.melt(id_vars=['PatientCat'], value_vars=['n_1', 'n_2', 'n_3', 'n_4', 'n_5'],
+                    var_name='Condition', value_name='Value')
+
+# Create the bar plot
+plt.figure(figsize=(12, 6))
+sns.barplot(data=df_melted, x='Condition', y='Value', hue='PatientCat')
+plt.title('Bar Plots for senN_x Conditions Separated by PatientCat')
+plt.xlabel('Condition')
+plt.ylabel('Value')
+plt.legend(title='Patient Category')
+plt.show()

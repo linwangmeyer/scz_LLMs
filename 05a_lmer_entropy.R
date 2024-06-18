@@ -22,26 +22,6 @@ p_load(interactions,lavaan,psych, readxl, semPlot)
 setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/")
 
 
-#---------------------------------------------#
-#prepare data
-#---------------------------------------------#
-data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','stim','TLI_DISORG','num_all_words','num_content_words','num_repetition','nsen','entropyApproximate')]
-df <- df[df$stim != 'Picture4', ]
-
-df2 <- df %>% 
-  mutate(ID = as.factor(ID),
-         Gender = as.factor(Gender),
-         PatientCat = as.factor(PatientCat),
-         stim = as.factor(stim))
-
-df2 <- df2[!is.na(df2$entropyApproximate), ]
-
-#visualize data
-x1 <- df2$entropyApproximate[df2$PatientCat==1]
-x2 <- df2$entropyApproximate[df2$PatientCat==2]
-#vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))
-
 
 ############################run models###################
 #-----------------------------------------------------------#
@@ -53,13 +33,13 @@ x2 <- df2$entropyApproximate[df2$PatientCat==2]
 #-------------------------------
 # get data ready
 data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
-#data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
+data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
 #data <- read.csv(file = 'TOPSY_TwoGroups_concatenated.csv')
 
 df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','nsen', 'num_all_words', 'num_content_words','num_repetition','stim','entropyApproximate','entropyTransform','TransformSimilarity')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$entropyApproximate),]
-
+df <- df[df$num_all_words > 100, ]
 df$DSST <- (df$DSST_Oral + df$DSST_Writen)/2
 
 #average across stims
@@ -138,7 +118,7 @@ p1 <- ggplot(df_plot, aes(x=TLI_DISORG, y=topic_mean, color=factor(PatientCat)))
   labs(x="TLI_DISORG", y="Entropy Approximate") +
   scale_color_manual(values=c("blue", "red"), labels = labels) +
   ggtitle("TLI_DISORG vs. Entropy") +
-  theme_minimal()
+  theme_minimal() + ylim(9, 10)
 ggsave("../plots/TLI_entropy.png", plot = p1, width = 6, height = 4, units = "in", dpi = 300)
 
 # Scatter plot of TLI_DISORG vs. nword
@@ -165,6 +145,7 @@ ggsave("../plots/nword_entropy.png", plot = p3, width = 6, height = 4, units = "
 # mean center data to get effect at the mean centered level
 d1 <- df4 %>%
   mutate(
+  age_centered = scale(AgeScan1, scale=FALSE),
   nword_centered = scale(nword_mean, scale=FALSE),
   ncontent_centered = scale(ncontent_mean, scale = FALSE),
   nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
@@ -174,6 +155,7 @@ d1 <- df4 %>%
 
 d2 <- df5 %>%
   mutate(
+    age_centered = scale(AgeScan1, scale=FALSE),
     nword_centered = scale(nword_mean, scale=FALSE),
     ncontent_centered = scale(ncontent_mean, scale = FALSE),
     nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
@@ -184,6 +166,7 @@ d2 <- df5 %>%
 
 d3 <- df6 %>%
   mutate(
+    age_centered = scale(AgeScan1, scale=FALSE),
     nword_centered = scale(nword_mean, scale=FALSE),
     ncontent_centered = scale(ncontent_mean, scale = FALSE),
     nrepeated_centered = scale(nrepeated_mean, scale = FALSE),
@@ -205,13 +188,13 @@ contrasts(d3$PatientCat) <- c(-.5, .5)
 
 #--------------------------------------------------------
 # test interaction between TLI_pos and nword
-m1 = lm(topic_mean ~ TLI_neg_centered*nword_centered + Gender + AgeScan1, data = d1) 
+m1 = lm(topic_mean ~ TLI_pos_centered*nword_centered + Gender + age_centered, data = d1) 
 summary(m1)
 
-m2 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + Gender + AgeScan1, data = d2) 
+m2 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + Gender + age_centered, data = d2) 
 summary(m2)
 
-m3 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + WM_centered + ExControl_centered + SemFluency_centered + Gender + AgeScan1, data = d3) 
+m3 = lm(topic_mean ~ TLI_pos_centered*nword_centered + SES + WM_centered + ExControl_centered + SemFluency_centered + Gender + age_centered, data = d3) 
 summary(m3)
 
 #-------------------------------
@@ -272,7 +255,7 @@ summary(emTrends_m1, infer= TRUE)
 m1 %>%
   interactions::interact_plot(pred = nword_centered,
                               modx = TLI_pos_centered,
-                              modx.values = c(-0.7259615,0,0.3365,3),
+                              modx.values = c(-0.7259615,0,0.3365,1),
                               interval = TRUE,
                               int.type = "confidence",
                               legend.main = "TLI:") +
@@ -289,23 +272,22 @@ m1 %>%
 
 #---------- group categorical effect
 # all participants
-d1$PatientCat <- relevel(factor(d1$PatientCat), ref = '1')
 contrasts(d1$PatientCat) <- c(-.5, .5)
-m4 = lm(topic_mean ~ PatientCat*nword_centered + Gender + AgeScan1, data = d1) 
+m4 = lm(topic_mean ~ PatientCat*nword_centered + Gender + age_centered, data = d1) 
 summary(m4)
-#anova(m4)
 
 # only participants with SES
-m5 = lm(topic_mean ~ PatientCat*nword_centered + Gender + AgeScan1 + SES, data = d2) 
+m5 = lm(topic_mean ~ PatientCat*nword_centered + Gender + age_centered + SES, data = d2) 
 summary(m5)
-
 
 # only participants with both SES and cognitive measures
 m6 = lm(topic_mean ~ PatientCat*nword_centered + Gender + AgeScan1 + SES + DSST + Trails.B + Category.Fluency..animals., data = d3) 
 summary(m6)
 
 
-
+###################################################
+# No longer in use
+###################################################
 
 #--------------------------------------------------------
 # mediation analysis
@@ -484,3 +466,24 @@ m6 <- lmer(entropyApproximate ~ PatientCat + TLI_DISORG + Gender + AgeScan1 + SE
 emm <- emmeans(m6, pairwise ~  PatientCat, pbkrtest.limit = 14060)
 pairs(emm, adjust = "tukey")
 summary(m6)
+
+
+#---------------------------------------------#
+#prepare data
+#---------------------------------------------#
+data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','stim','TLI_DISORG','num_all_words','num_content_words','num_repetition','nsen','entropyApproximate')]
+df <- df[df$stim != 'Picture4', ]
+
+df2 <- df %>% 
+  mutate(ID = as.factor(ID),
+         Gender = as.factor(Gender),
+         PatientCat = as.factor(PatientCat),
+         stim = as.factor(stim))
+
+df2 <- df2[!is.na(df2$entropyApproximate), ]
+
+#visualize data
+x1 <- df2$entropyApproximate[df2$PatientCat==1]
+x2 <- df2$entropyApproximate[df2$PatientCat==2]
+#vioplot(x1, x2, names=c("ctrl", "scz"), colors=c("blue", "red"))

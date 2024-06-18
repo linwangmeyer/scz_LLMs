@@ -22,7 +22,8 @@ setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/sti
 #---------------------------------------------#
 #prepare data: include all variables
 #---------------------------------------------#
-data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+#data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
 df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repetition','nsen')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]
@@ -95,6 +96,7 @@ ggsave("w2v_groups_noalpha.eps", device = "eps", width = 7, height = 5)
 # selecting different subsets of participants
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups_1min.csv')
+data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
 df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','n_1','n_2','n_3','n_4','n_5','num_all_words','num_content_words','num_repetition','nsen')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$n_1),]

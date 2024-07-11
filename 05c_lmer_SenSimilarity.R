@@ -23,8 +23,7 @@ setwd("/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/sti
 #prepare data: include all variables
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','senN_1','senN_2','senN_3','senN_4','n_segment','num_all_words')]
-df <- df[df$stim != 'Picture4', ]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','senN_1','senN_2','senN_3','senN_4','n_segment','num_all_words','s0_mean')]
 df <- df[!is.na(df$senN_1),]
 #df <- df[df$num_all_words > 100,]
 df2 <- df %>%
@@ -96,7 +95,7 @@ ggsave("w2v_groups_noalpha.eps", device = "eps", width = 7, height = 5)
 # selecting different subsets of participants
 #---------------------------------------------#
 data <- read.csv(file = 'TOPSY_TwoGroups_spontaneous.csv')
-df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','senN_1','senN_2','senN_3','senN_4','n_segment','num_all_words')]
+df <- data[,c('ID','PatientCat','Gender','AgeScan1','SES','PANSS.Pos','Trails.B', 'Category.Fluency..animals.','DSST_Writen','DSST_Oral','TLI_DISORG','TLI_IMPOV','stim','senN_1','senN_2','senN_3','senN_4','n_segment','num_all_words','s0_mean')]
 df <- df[df$stim != 'Picture4', ]
 df <- df[!is.na(df$senN_1),]
 #df <- df[df$num_all_words > 100,]

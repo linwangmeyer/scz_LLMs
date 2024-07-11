@@ -13,7 +13,8 @@ from scipy.stats import pearsonr
 # Read data
 ## --------------------------------------------------------------------
 # Get list of folder and file names
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.dirname(current_directory)
 child_folders = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
 text_file_list = []
 folder_file = {}
@@ -107,7 +108,7 @@ for k in range(3):
     df_w2v.loc[df_w2v['stim'] == 'Picture 1','stim']='Picture1'
     df_w2v = df_w2v.drop(df_w2v[df_w2v['stim'] == 'Picture4'].index)
     df_w2v.dropna(subset=['stim'], inplace=True)
-    fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+    fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
     df_w2v.to_csv(fname, index=False)
 
     fname_var = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv') #containing topic measures

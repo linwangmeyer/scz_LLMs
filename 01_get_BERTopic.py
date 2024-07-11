@@ -27,37 +27,34 @@ for child_folder in child_folders:
 # Calculate topic measures: speech of different conditions
 mode_label = ['before_time_up','spontaneous', 'full_speech']
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
-k = 1
-mode = mode_label[k]
-outputfile = outputfile_label[k]
+for k in range(3):
+      mode = mode_label[k]
+      outputfile = outputfile_label[k]
 
-topic_measures = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        id_stim, topic_entropy_app, topic_entropy_trans, topic_sim, topic_entropy_sim, n_sentence, n_word = process_file_topic(parent_folder, foldername, filename, mode=mode, window=30)
-        topic_measures[id_stim] = {'entropyApproximate': topic_entropy_app,
-                                    'entropyTransform': topic_entropy_trans,
-                                    'TransformSimilarity': topic_sim,
-                                    'entropySimilarity': topic_entropy_sim,
-                                    'nsen': n_sentence,
-                                    'nword': n_word}
-result_data = [(id_stim, values['entropyApproximate'], values['entropyTransform'], values['TransformSimilarity'], values['entropySimilarity'], values['nsen'], values['nword']) for id_stim, values in topic_measures.items()]
-columns = ['ID_stim', 'entropyApproximate', 'entropyTransform', 'TransformSimilarity', 'entropySimilarity', 'nsen', 'nword']
-result_df = pd.DataFrame(result_data, columns=columns)
-result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
-result_df.drop(columns=['ID_stim'], inplace=True)
-result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
-result_df.to_csv(fname, index=False)
+      topic_measures = {}
+      for foldername, filenames in folder_file.items():
+            print(f'folder: {foldername}')
+            for filename in filenames:
+                  print(f'file: {filename}')
+                  id_stim, topic_entropy_app, topic_entropy_trans, topic_sim, topic_entropy_sim, n_sentence, n_word = process_file_topic(parent_folder, foldername, filename, mode=mode, window=30)
+                  topic_measures[id_stim] = {'entropyApproximate': topic_entropy_app,
+                                                'entropyTransform': topic_entropy_trans,
+                                                'TransformSimilarity': topic_sim,
+                                                'entropySimilarity': topic_entropy_sim,
+                                                'nsen': n_sentence,
+                                                'nword': n_word}
+      result_data = [(id_stim, values['entropyApproximate'], values['entropyTransform'], values['TransformSimilarity'], values['entropySimilarity'], values['nsen'], values['nword']) for id_stim, values in topic_measures.items()]
+      columns = ['ID_stim', 'entropyApproximate', 'entropyTransform', 'TransformSimilarity', 'entropySimilarity', 'nsen', 'nword']
+      result_df = pd.DataFrame(result_data, columns=columns)
+      result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
+      result_df.drop(columns=['ID_stim'], inplace=True)
+      result_df['ID'] = result_df['ID'].astype('int64')
+      result_df.loc[result_df['stim'] == 'Picture 1','stim']='Picture1'
+      result_df = result_df.drop(result_df[result_df['stim'] == 'Picture4'].index)
+      result_df.dropna(subset=['stim'], inplace=True)
+      fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+      result_df.to_csv(fname, index=False)
 
-result_df = pd.read_csv(fname)
-result_df.loc[result_df['stim'] == 'Picture 1','stim']='Picture1'
-result_df = result_df.drop(result_df[result_df['stim'] == 'Picture4'].index)
-result_df.dropna(subset=['stim'], inplace=True)
-fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
-result_df.to_csv(fname, index=False)
 
 ## --------------------------------------------------------------------
 # Combine with subject info

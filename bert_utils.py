@@ -5,8 +5,12 @@ import numpy as np
 import pandas as pd
 import math
 from bertopic import BERTopic
-from wordcloud import WordCloud
+#from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+
+import stanza
+stanza.download('en')
+nlp = stanza.Pipeline('en')
 
 import re
 import string
@@ -15,13 +19,15 @@ from collections import Counter
 import nltk
 from nltk.tokenize import word_tokenize,sent_tokenize
 from nltk.corpus import stopwords
+from wordfreq import zipf_frequency
+
 nltk.download('punkt')
 nltk.download('stopwords')
 stop_words_new = [',','uh','um','...','um…','xx','uh…','and…','hm',"'s",'..',
                   'mhmm','mmhmm','mhm',"''",'eh','re',"”",'v','hmm',"'m",'ish',
                   'umm','ii','yup','yes','ugh',"“",'ar','oh','h',"'re",'ohh',
                   'wow','lo','aw','ta','ah','na','ex',"'","’","‘",'yo','ok','ah','mm',
-                  'na','ra','ha','ka','huh','bc','a.c.','a.c','uhh','hey','gee',"n't",'nah']
+                  'na','ra','ha','ka','huh','bc','a.c.','a.c','uhh','hey','gee',"n't",'nah','XX']
 stop_words = set(stopwords.words('english') + stop_words_new)
 
 import gensim.downloader as api
@@ -182,23 +188,28 @@ def get_word2vec(content_words):
     missing_words = [word for word in content_words if word not in model_w2v.key_to_index]
     content_words = [word for word in content_words if word not in missing_words]
     
-    similarities = []
-    for i in range(5, len(content_words)):
-        word_n_minus_1 = content_words[i - 1]
-        word_n_minus_2 = content_words[i - 2]
-        word_n_minus_3 = content_words[i - 3]
-        word_n_minus_4 = content_words[i - 4]
-        word_n_minus_5 = content_words[i - 5]
-        word_n = content_words[i]
-        
-        similarity_n_1 = model_w2v.similarity(word_n_minus_1, word_n)
-        similarity_n_2 = model_w2v.similarity(word_n_minus_2, word_n)
-        similarity_n_3 = model_w2v.similarity(word_n_minus_3, word_n)
-        similarity_n_4 = model_w2v.similarity(word_n_minus_4, word_n)
-        similarity_n_5 = model_w2v.similarity(word_n_minus_5, word_n)
-        
-        similarities.append([similarity_n_1, similarity_n_2, similarity_n_3, similarity_n_4, similarity_n_5])
     columns = ['similarity_n_1', 'similarity_n_2', 'similarity_n_3', 'similarity_n_4', 'similarity_n_5']
+    
+    similarities = []
+    if len(content_words) < 5:
+        similarities = np.full((5,), np.nan)
+    else:
+        for i in range(5, len(content_words)):
+            word_n_minus_1 = content_words[i - 1]
+            word_n_minus_2 = content_words[i - 2]
+            word_n_minus_3 = content_words[i - 3]
+            word_n_minus_4 = content_words[i - 4]
+            word_n_minus_5 = content_words[i - 5]
+            word_n = content_words[i]
+            
+            similarity_n_1 = model_w2v.similarity(word_n_minus_1, word_n)
+            similarity_n_2 = model_w2v.similarity(word_n_minus_2, word_n)
+            similarity_n_3 = model_w2v.similarity(word_n_minus_3, word_n)
+            similarity_n_4 = model_w2v.similarity(word_n_minus_4, word_n)
+            similarity_n_5 = model_w2v.similarity(word_n_minus_5, word_n)
+            
+            similarities.append([similarity_n_1, similarity_n_2, similarity_n_3, similarity_n_4, similarity_n_5])
+    
     similarity_df = pd.DataFrame(similarities, columns=columns)
     return similarity_df, missing_words
 
@@ -324,3 +335,210 @@ def process_file_topic(parent_folder, foldername, filename, mode, window):
     n_word = len(stim_all.split())
     
     return file_list, topic_entropy_app, topic_entropy_trans, topic_sim, topic_entropy_sim, n_sentence, n_word
+
+
+
+
+
+
+## --------------------------------------------------------------------
+# Syntactic functions
+## --------------------------------------------------------------------
+
+# Identify disfluencies
+def get_disfluencies(stim_all):
+    sentences = nltk.sent_tokenize(stim_all)
+    
+    num_fillers = []
+    num_repetitions = []
+    num_false_starts = []
+    num_self_corrections = []
+    
+    for text in sentences:
+        
+        # Count number of filler words
+        fillers = re.findall(r'\b(um|uh|hm|hmm|m|umm|ii|ar|ugh|ar|ohh|wow|lo|aw|ta|na|mm|ra|ha|ka|huh|uhh|gee|nah|er|ah|hey)\b', text, flags=re.IGNORECASE)
+        num_fillers.append(len(fillers))
+        
+        # Count repetitions (words repeated consecutively)
+        repetitions = re.findall(r'\b(\w+)\s+\1\b', text)
+        num_repetitions.append(len(repetitions))
+        
+        # Count false starts (detected by identifying incomplete phrases or corrections)
+        false_starts = re.findall(r'[\w\s\']+[^.!?]*(?:\.{3})', text)
+        num_false_starts.append(len(false_starts))
+        
+        # Count self-corrections (simple heuristic: word followed by a comma and a correction)
+        self_corrections = re.findall(r'\b\w+,\s*(\w+)\b', text)
+        num_self_corrections.append(len(self_corrections))
+        
+    total_fillers = np.array(num_fillers).sum()
+    total_repetitions = np.array(num_repetitions).sum()
+    total_false_starts = np.array(num_false_starts).sum()
+    total_self_corrections = np.array(num_self_corrections).sum()
+    
+    return {
+        'fillers': total_fillers,
+        'repetitions': total_repetitions,
+        'false_starts': total_false_starts,
+        'self_corrections': total_self_corrections
+    }
+
+
+# syntactic complexity
+def calculate_syntactic_complexity(text):
+    
+    # Process the text with Stanza
+    doc = nlp(text)
+    
+    # Initialize variables for metrics
+    total_words = 0
+    num_sentences = 0
+    total_clauses = 0
+    total_t_units = 0
+    total_dependency_distance = 0
+    total_dependencies = 0
+    
+    # Calculate metrics
+    for sentence in doc.sentences:
+        num_sentences += 1
+        words = sentence.words
+        total_words += len(words)
+        
+        clauses = [word for word in words if word.deprel == 'root']
+        total_clauses += len(clauses)
+        total_t_units += len(clauses)
+        
+        for word in words:
+            if word.deprel in {'acl', 'advcl', 'ccomp', 'xcomp'}:
+                total_clauses += 1
+        
+        for word in words:
+            if word.head != 0:  # Exclude the root dependency
+                head_index = word.head - 1
+                head = words[head_index]
+                total_dependency_distance += abs(word.id - head.id)
+                total_dependencies += 1
+    
+    # Calculate metrics
+    mlu = total_words / num_sentences if num_sentences > 0 else 0
+    si = total_clauses / total_t_units if total_t_units > 0 else 0
+    clause_density = total_clauses / num_sentences if num_sentences > 0 else 0
+    average_dependency_distance = total_dependency_distance / total_dependencies if total_dependencies > 0 else 0
+    
+    return {
+        'length_utter': np.round(mlu,2), #Mean Length of Utterance
+        'subord_index': np.round(si,2), #Subordination Index
+        'clause_density': np.round(clause_density,2),
+        'dependency_distance': np.round(average_dependency_distance,2)
+    }
+
+
+
+def process_file_syntax(parent_folder, foldername, filename, mode):
+    
+    fname = os.path.join(parent_folder, foldername, filename)
+    stim = read_data_fromtxt(fname)
+    
+    if mode == 'spontaneous':
+        stim_all = stim['P1']
+    elif mode == 'before_time_up':
+        stim_cmb = get_speech_before_time_up(stim)
+        if len(stim_cmb[0]) > 1: #if there are more than 1 turn
+            stim_all = ' '.join(stim_cmb)
+        else:
+            stim_all = stim_cmb
+    elif mode == 'full_speech':
+        stim_cmb = [stim[key] for key in stim if key.startswith('P')]
+        stim_all = ' '.join(stim_cmb)
+    else:
+        raise ValueError('select one of the three modes: spontaneous, before_time_up, full_speech')
+    
+    # Get file name
+    file_list = filename.split('.')[0][6:]
+    
+    # Count disfluencies
+    disfluency = get_disfluencies(stim_all)
+    
+    # Quntify syntactic complexity
+    syntax = calculate_syntactic_complexity(stim_all)
+    
+    return file_list, disfluency, syntax
+
+
+## --------------------------------------------------------------------
+# Lexical functions
+## --------------------------------------------------------------------
+
+CONTENT_WORD_TAGS = ['NN', 'NNS', 'NNP', 'NNPS', 'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ', 'JJ', 'JJR', 'JJS', 'RB', 'RBR', 'RBS']
+FUNCTION_WORD_TAGS = ['CC', 'DT', 'EX', 'FW', 'IN', 'LS', 'MD', 'PDT', 'POS', 'PRP', 'PRP$', 'RP', 'TO', 'UH', 'WDT', 'WP', 'WP$', 'WRB']
+
+def get_lexical(text):
+    # Tokenize the text
+    tokens = nltk.word_tokenize(text.lower())
+    
+    # Remove punctuation
+    tokens = [word for word in tokens if word not in string.punctuation]
+    
+    # Get part-of-speech tags for each token
+    pos_tags = nltk.pos_tag(tokens)
+    
+    # Classify words as content or function based on POS tags
+    content_words = [word for word, pos in pos_tags if pos in CONTENT_WORD_TAGS]
+    function_words = [word for word, pos in pos_tags if pos in FUNCTION_WORD_TAGS]
+    
+    # Calculate content vs. function word ratio
+    num_content_words = len(content_words)
+    num_function_words = len(function_words)
+    total_words = len(tokens)
+    content_function_ratio = num_content_words / num_function_words if num_function_words > 0 else 0
+    
+    # Calculate Type-Token Ratio (TTR)
+    unique_words = set(tokens)
+    num_unique_words = len(unique_words)
+    ttr = num_unique_words / total_words if total_words > 0 else 0
+    
+    # Calculate average word frequency
+    words_freq = []
+    for word in tokens:
+        try:
+            frequency = zipf_frequency(word, 'en')
+            words_freq.append(frequency)
+        except ValueError:  # Catch the exception if word not found
+            words_freq.append(0)
+    avg_word_freq = np.mean(np.array(words_freq))
+    
+    return {
+        'content_function_ratio': content_function_ratio,
+        'type_token_ratio': ttr,
+        'average_word_frequency': avg_word_freq
+    }
+
+
+
+def process_file_lexical(parent_folder, foldername, filename, mode):
+    
+    fname = os.path.join(parent_folder, foldername, filename)
+    stim = read_data_fromtxt(fname)
+    
+    if mode == 'spontaneous':
+        stim_all = stim['P1']
+    elif mode == 'before_time_up':
+        stim_cmb = get_speech_before_time_up(stim)
+        if len(stim_cmb[0]) > 1: #if there are more than 1 turn
+            stim_all = ' '.join(stim_cmb)
+        else:
+            stim_all = stim_cmb
+    elif mode == 'full_speech':
+        stim_cmb = [stim[key] for key in stim if key.startswith('P')]
+        stim_all = ' '.join(stim_cmb)
+    else:
+        raise ValueError('select one of the three modes: spontaneous, before_time_up, full_speech')
+    
+    # Get file name
+    file_list = filename.split('.')[0][6:]
+    
+    # Count disfluencies
+    lexical = get_lexical(stim_all)
+        
+    return file_list, lexical

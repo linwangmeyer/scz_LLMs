@@ -121,7 +121,7 @@ def get_sentence_similarity_backwards(parent_folder, foldername, filename, backN
             # Select the current sentence embedding
             current_embedding = embeddings[i].reshape(1, -1)
             
-            # Select the preceding five sentence embeddings
+            # Select the preceding N sentence embeddings
             preceding_embeddings = embeddings[i-backN:i]
             
             # Compute the cosine similarities

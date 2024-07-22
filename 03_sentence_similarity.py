@@ -31,7 +31,7 @@ for child_folder in child_folders:
     folder_file[child_folder] = text_files
 
 # Read the official labels of the pictures
-fname_apriori = '/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/official_labels.xlsx'
+fname_apriori = '/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/Pictures/official_labels.xlsx'
 df = pd.read_excel(fname_apriori)
 p1 = df[df['Picture ID']=='Picture 1']['Brief summary'].to_list()
 p2 = df[df['Picture ID']=='Picture 2']['Brief summary'].to_list()

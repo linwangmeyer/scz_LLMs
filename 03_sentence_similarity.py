@@ -7,7 +7,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-from wordcloud import WordCloud
+#from wordcloud import WordCloud
 from sentence_transformers import SentenceTransformer
 from scipy.stats import pearsonr
 from scipy.stats import zscore
@@ -21,14 +21,10 @@ from bert_utils import read_data_fromtxt,get_speech_before_time_up
 # Read data
 ## --------------------------------------------------------------------
 # Get list of folder and file names
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-child_folders = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
-text_file_list = []
-folder_file = {}
-for child_folder in child_folders:
-    child_folder_path = os.path.join(parent_folder, child_folder)
-    text_files = [file for file in os.listdir(child_folder_path) if file.endswith(".txt")]
-    folder_file[child_folder] = text_files
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
+text_files = [file for file in os.listdir(parent_folder) if file.endswith(".txt")]
+
 
 # Read the official labels of the pictures
 fname_apriori = '/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/Pictures/official_labels.xlsx'
@@ -38,10 +34,10 @@ p2 = df[df['Picture ID']=='Picture 2']['Brief summary'].to_list()
 p3 = df[df['Picture ID']=='Picture 3']['Brief summary'].to_list()
 
 
-def get_sentence_similarity(parent_folder, foldername, filename,mode):
+def get_sentence_similarity(parent_folder, filename, mode):
     "Get the stimuli as strings; output: slope of the similarity time course"
     
-    fname = os.path.join(parent_folder, foldername, filename)
+    fname = os.path.join(parent_folder, filename)
     stim = read_data_fromtxt(fname)
     
     if mode == 'spontaneous':
@@ -90,10 +86,10 @@ def get_sentence_similarity(parent_folder, foldername, filename,mode):
     return file_list, consec_mean, consec_std, consec_diff_std, s0_mean, s0_std, s0_diff_std, n_segment
 
 
-def get_sentence_similarity_backwards(parent_folder, foldername, filename, backN, mode):
+def get_sentence_similarity_backwards(parent_folder, filename, backN, mode):
     "Get the stimuli as strings; output: slope of the similarity time course"
     
-    fname = os.path.join(parent_folder, foldername, filename)
+    fname = os.path.join(parent_folder, filename)
     stim = read_data_fromtxt(fname)
     
     if mode == 'spontaneous':
@@ -151,14 +147,9 @@ model = SentenceTransformer('all-MiniLM-L6-v2')
 # Read data
 ## --------------------------------------------------------------------
 # Get list of folder and file names
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-child_folders = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
-text_file_list = []
-folder_file = {}
-for child_folder in child_folders:
-    child_folder_path = os.path.join(parent_folder, child_folder)
-    text_files = [file for file in os.listdir(child_folder_path) if file.endswith(".txt")]
-    folder_file[child_folder] = text_files
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
+text_files = [file for file in os.listdir(parent_folder) if file.endswith(".txt")]
 
 ## --------------------------------------------------------------------
 # Get data and conduct consequative simialrity analysis
@@ -170,20 +161,17 @@ mode = mode_label[k]
 outputfile = outputfile_label[k]
 
 similarity_measures = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        if 'Picture4' not in filename: #not analyzing picture4
-            id_stim, consec_mean, consec_std, consec_diff_std, s0_mean, s0_std, s0_diff_std, n_segment = get_sentence_similarity(parent_folder, foldername, filename, mode)
-            similarity_measures[id_stim] = {'consec_mean': consec_mean,
-                                        'consec_std': consec_std,
-                                        'consec_diff_std': consec_diff_std,
-                                        's0_mean': s0_mean,
-                                        's0_std': s0_std,
-                                        's0_diff_std': s0_diff_std,
-                                        'n_segment': n_segment
-                                        }
+for filename in text_files:
+    print(f'file: {filename}')
+    id_stim, consec_mean, consec_std, consec_diff_std, s0_mean, s0_std, s0_diff_std, n_segment = get_sentence_similarity(parent_folder, filename, mode)
+    similarity_measures[id_stim] = {'consec_mean': consec_mean,
+                                'consec_std': consec_std,
+                                'consec_diff_std': consec_diff_std,
+                                's0_mean': s0_mean,
+                                's0_std': s0_std,
+                                's0_diff_std': s0_diff_std,
+                                'n_segment': n_segment
+                                }
 result_data = []
 for id_stim, values in similarity_measures.items():
     result_data.append((id_stim, values['consec_mean'], values['consec_std'], values['consec_diff_std'],values['s0_mean'], values['s0_std'], values['s0_diff_std'], values['n_segment']))
@@ -192,7 +180,7 @@ result_df = pd.DataFrame(result_data, columns=columns)
 result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
 result_df.drop(columns=['ID_stim'], inplace=True)
 result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'similarity_measures_' + outputfile + '.csv')
+fname = os.path.join(parent_folder,'analysis','similarity_measures_' + outputfile + '.csv')
 result_df.to_csv(fname, index=False)
 
 
@@ -208,13 +196,10 @@ mode = mode_label[k]
 outputfile = outputfile_label[k]
 
 similarity_measures = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        if 'Picture4' not in filename: #not analyzing picture4
-            id_stim, mean_sim, _ = get_sentence_similarity_backwards(parent_folder, foldername, filename, 4, mode)
-            similarity_measures[id_stim] = {'similarity': mean_sim}
+for filename in text_files:
+    print(f'file: {filename}')
+    id_stim, mean_sim, _ = get_sentence_similarity_backwards(parent_folder, filename, 4, mode)
+    similarity_measures[id_stim] = {'similarity': mean_sim}
 result_data = []
 for id_stim, values in similarity_measures.items():
     result_data.append((id_stim, values['similarity'][0],values['similarity'][1],values['similarity'][2],values['similarity'][3]))
@@ -223,73 +208,46 @@ result_df = pd.DataFrame(result_data, columns=columns)
 result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
 result_df.drop(columns=['ID_stim'], inplace=True)
 result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'SenSimilarity_backwards_measures_' + outputfile + '.csv')
+fname = os.path.join(parent_folder,'analysis','SenSimilarity_backwards_measures_' + outputfile + '.csv')
 result_df.to_csv(fname, index=False)
 
 
 
-
 ## --------------------------------------------------------------------
-# Combine with subject info: consequative similarity
+# Combine with subject info: consequative similarity and backward similarity
 ## --------------------------------------------------------------------
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
 for k in range(3):
     outputfile = outputfile_label[k]
-    fname = os.path.join(parent_folder,'similarity_measures_' + outputfile + '.csv')
-    df_stim = pd.read_csv(fname)
-
-    fname_var = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv') #containing topic measures
-    df_var = pd.read_csv(fname_var)
-    df_var.loc[df_var['stim'] == 'Picture 1','stim']='Picture1'
-    df_var = df_var.drop(df_var[df_var['stim'] == 'Picture4'].index)
-    df_var.dropna(subset=['stim'], inplace=True)
-
-    df_merge = df_var.merge(df_stim, on=['ID','stim'],how='outer')
-    filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
-
-    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
-    filtered_df.to_csv(fname_all,index=False)
-
-    df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
-    df_goi.to_csv(fname_goi,index=False)
-
-
-## --------------------------------------------------------------------
-# Combine with subject info: backward similarity
-## --------------------------------------------------------------------
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-outputfile_label = ['1min', 'spontaneous', 'concatenated']
-for k in range(3):
-    outputfile = outputfile_label[k]
-    fname = os.path.join(parent_folder,'SenSimilarity_backwards_measures_' + outputfile + '.csv')
-    df_stim = pd.read_csv(fname)
-
-    fname_var = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv') #containing topic measures
-    df_var = pd.read_csv(fname_var)
-    df_var.loc[df_var['stim'] == 'Picture 1','stim']='Picture1'
-    df_var = df_var.drop(df_var[df_var['stim'] == 'Picture4'].index)
-    df_var.dropna(subset=['stim'], inplace=True)
-
-    df_merge = df_var.merge(df_stim, on=['ID','stim'],how='outer')
-    filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
-
-    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
-    filtered_df.to_csv(fname_all,index=False)
-
-    df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
-    df_goi.to_csv(fname_goi,index=False)
     
+    fname = os.path.join(parent_folder,'analysis','similarity_measures_' + outputfile + '.csv')
+    df_stim = pd.read_csv(fname)
+
+    fname = os.path.join(parent_folder,'analysis','SenSimilarity_backwards_measures_' + outputfile + '.csv')
+    df_stim2 = pd.read_csv(fname)
+
+    fname_var = os.path.join(os.path.dirname(parent_folder),'variables','TOPSY_subjectspec_variables.csv')
+    df_var = pd.read_csv(fname_var)
+
+    df_merge = df_var.merge(df_stim, on=['ID','stim'],how='outer')
+    
+    df_final_merge = df_merge.merge(df_stim2, on=['ID', 'stim'], how='outer')
+    
+    # all participants
+    filtered_df = df_final_merge.dropna(subset = df_final_merge.columns[1:].tolist(), how='all')
+
+    # only two groups
+    df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
+    
+
 ## --------------------------------------------------------------------
 # Visualize consequative similarity values
 ## --------------------------------------------------------------------
 # Compare between two groups
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_concatenated.csv')
-df = pd.read_csv(fname_var)
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
+
+filtered_df = filtered_df.loc[(filtered_df['PatientCat'] == 1) | (filtered_df['PatientCat'] == 2), 
                          ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'num_all_words', 
                           'entropyApproximate','consec_mean', 'consec_std','consec_diff_std',
                           's0_mean', 's0_std', 's0_diff_std', 'n_segment']]
@@ -308,11 +266,8 @@ plt.show()
 
 
 # Relationship between LTI and number of word
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_concatenated.csv')
-df = pd.read_csv(fname_var)
-df['PatientCat'] = df['PatientCat'].astype('int')
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','num_all_words','stim','entropyApproximate','consec_mean', 'consec_std','consec_diff_std','s0_mean', 's0_std', 's0_diff_std', 'n_segment']]
+
+filtered_df = filtered_df.loc[(filtered_df['PatientCat'] == 1) | (filtered_df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','num_all_words','stim','entropyApproximate','consec_mean', 'consec_std','consec_diff_std','s0_mean', 's0_std', 's0_diff_std', 'n_segment']]
 filtered_df.dropna(inplace=True)
 r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['s0_mean'])
 print(f'correlation between TLI and Sentence Similarity estimation:'
@@ -339,6 +294,7 @@ sns.scatterplot(data=df_plot, x='n_segment', y='consec_std', hue='PatientCat', p
 plt.savefig('BERT_n_segments_Entropy.png', format='png', bbox_inches='tight')
 plt.show()
 
+
 #-----------------
 # insights from consequative similarity analysis
 #-----------------
@@ -353,10 +309,7 @@ plt.show()
 ## --------------------------------------------------------------------
 # Visualize backword similarity values
 ## --------------------------------------------------------------------
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_spontaneous.csv')
-df = pd.read_csv(fname_var)
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
+filtered_df = filtered_df.loc[(filtered_df['PatientCat'] == 1) | (filtered_df['PatientCat'] == 2), 
                          ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 
                           'senN_1', 'senN_2', 'senN_3', 'senN_4','n_segment']]
 filtered_df.dropna(inplace=True)

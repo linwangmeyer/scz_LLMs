@@ -11,14 +11,9 @@ from scipy.stats import pearsonr
 # Read data
 ## --------------------------------------------------------------------
 # Get list of folder and file names
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-child_folders = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
-text_file_list = []
-folder_file = {}
-for child_folder in child_folders:
-    child_folder_path = os.path.join(parent_folder, child_folder)
-    text_files = [file for file in os.listdir(child_folder_path) if file.endswith(".txt")]
-    folder_file[child_folder] = text_files
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
+text_files = [file for file in os.listdir(parent_folder) if file.endswith(".txt")]
 
 ## --------------------------------------------------------------------
 # Get topic measures
@@ -32,54 +27,48 @@ for k in range(3):
       outputfile = outputfile_label[k]
 
       topic_measures = {}
-      for foldername, filenames in folder_file.items():
-            print(f'folder: {foldername}')
-            for filename in filenames:
-                  print(f'file: {filename}')
-                  id_stim, topic_entropy_app, topic_entropy_trans, topic_sim, topic_entropy_sim, n_sentence, n_word = process_file_topic(parent_folder, foldername, filename, mode=mode, window=30)
-                  topic_measures[id_stim] = {'entropyApproximate': topic_entropy_app,
-                                                'entropyTransform': topic_entropy_trans,
-                                                'TransformSimilarity': topic_sim,
-                                                'entropySimilarity': topic_entropy_sim,
-                                                'nsen': n_sentence,
-                                                'nword': n_word}
+      for filename in text_files:
+            print(f'folder: {filename}')            
+            id_stim, topic_entropy_app, topic_entropy_trans, topic_sim, topic_entropy_sim, n_sentence, n_word = process_file_topic(parent_folder, filename, mode=mode, window=30)
+            topic_measures[id_stim] = {'entropyApproximate': topic_entropy_app,
+                                          'entropyTransform': topic_entropy_trans,
+                                          'TransformSimilarity': topic_sim,
+                                          'entropySimilarity': topic_entropy_sim,
+                                          'nsen': n_sentence,
+                                          'nword': n_word}
       result_data = [(id_stim, values['entropyApproximate'], values['entropyTransform'], values['TransformSimilarity'], values['entropySimilarity'], values['nsen'], values['nword']) for id_stim, values in topic_measures.items()]
       columns = ['ID_stim', 'entropyApproximate', 'entropyTransform', 'TransformSimilarity', 'entropySimilarity', 'nsen', 'nword']
       result_df = pd.DataFrame(result_data, columns=columns)
       result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
       result_df.drop(columns=['ID_stim'], inplace=True)
       result_df['ID'] = result_df['ID'].astype('int64')
-      result_df.loc[result_df['stim'] == 'Picture 1','stim']='Picture1'
-      result_df = result_df.drop(result_df[result_df['stim'] == 'Picture4'].index)
       result_df.dropna(subset=['stim'], inplace=True)
-      fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+      fname = os.path.join(parent_folder,'analysis','topic_measures_' + outputfile + '.csv')
       result_df.to_csv(fname, index=False)
 
 
 ## --------------------------------------------------------------------
 # Combine with subject info
 ## --------------------------------------------------------------------
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
 for k in range(3):
     outputfile = outputfile_label[k]
 
-    fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')
+    fname = os.path.join(parent_folder,'analysis','topic_measures_' + outputfile + '.csv')
     df = pd.read_csv(fname)
-    df['ID'] = df['ID'].astype('int64')
 
-    fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
+    fname_var = os.path.join(os.path.dirname(parent_folder),'variables','TOPSY_subjectspec_variables.csv')
     df_var = pd.read_csv(fname_var)
 
     df_merge = df_var.merge(df,on='ID',how='outer')
 
+    # all participants
     filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
-    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
-    filtered_df.to_csv(fname_all,index=False)
 
+    # only two groups
     df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
-    df_goi.to_csv(fname_goi,index=False)
 
 
 ## --------------------------------------------------------------------
@@ -88,13 +77,8 @@ for k in range(3):
 
 ## --------------------------------------------------------------------
 # Relationship between LTI and number of word
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
-df = pd.read_csv(fname_var)
-index_to_remove = df[df['stim'] == 'Picture4'].index
-df = df.drop(index_to_remove)
-df['PatientCat'] = df['PatientCat'].astype('int')
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','num_all_words','stim','entropyApproximate',]]
+filtered_df['PatientCat'] = filtered_df['PatientCat'].astype('int')
+filtered_df = filtered_df.loc[(filtered_df['PatientCat'] == 1) | (filtered_df['PatientCat'] == 2),['ID','PatientCat','TLI_DISORG','TLI_IMPOV','num_all_words','stim','entropyApproximate',]]
 filtered_df.dropna(inplace=True)
 r, p_value = pearsonr(filtered_df['TLI_DISORG'], filtered_df['entropyApproximate'])
 print(f'correlation between TLI and Approximate Entropy estimation:'

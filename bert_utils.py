@@ -214,7 +214,7 @@ def get_word2vec(content_words):
     return similarity_df, missing_words
 
 
-def get_missing_words(folder_file, parent_folder, foldername, filename, mode):
+def get_missing_words(folder_file, parent_folder, filename, mode):
     '''get lists of words that can't be found in word2vec model'''
     missing_words_list = {}
     content_words_list = {}
@@ -222,7 +222,7 @@ def get_missing_words(folder_file, parent_folder, foldername, filename, mode):
         print(f'folder: {foldername}')
         for filename in filenames:
             print(f'file: {filename}')
-            fname = os.path.join(parent_folder, foldername, filename)
+            fname = os.path.join(parent_folder, filename)
             stim = read_data_fromtxt(fname)
             
             if mode == 'spontaneous':
@@ -249,8 +249,8 @@ def get_missing_words(folder_file, parent_folder, foldername, filename, mode):
     return concatenated_values, unique_words_all
 
 
-def process_file_w2v(parent_folder, foldername, filename, mode):
-    fname = os.path.join(parent_folder, foldername, filename)
+def process_file_w2v(parent_folder, filename, mode):
+    fname = os.path.join(parent_folder, filename)
     file_list = filename.split('.')[0][6:]
     
     stim = read_data_fromtxt(fname)
@@ -289,9 +289,9 @@ def process_file_w2v(parent_folder, foldername, filename, mode):
 #-----------------------------------
 # get topic entropy related functions
 #-----------------------------------
-def process_file_topic(parent_folder, foldername, filename, mode, window):
+def process_file_topic(parent_folder, filename, mode, window):
     
-    fname = os.path.join(parent_folder, foldername, filename)
+    fname = os.path.join(parent_folder, filename)
     stim = read_data_fromtxt(fname)
     
     if mode == 'spontaneous':
@@ -435,9 +435,9 @@ def calculate_syntactic_complexity(text):
 
 
 
-def process_file_syntax(parent_folder, foldername, filename, mode):
+def process_file_syntax(parent_folder, filename, mode):
     
-    fname = os.path.join(parent_folder, foldername, filename)
+    fname = os.path.join(parent_folder, filename)
     stim = read_data_fromtxt(fname)
     
     if mode == 'spontaneous':
@@ -516,9 +516,9 @@ def get_lexical(text):
 
 
 
-def process_file_lexical(parent_folder, foldername, filename, mode):
+def process_file_lexical(parent_folder, filename, mode):
     
-    fname = os.path.join(parent_folder, foldername, filename)
+    fname = os.path.join(parent_folder, filename)
     stim = read_data_fromtxt(fname)
     
     if mode == 'spontaneous':

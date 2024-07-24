@@ -97,12 +97,13 @@ def residual_analysis(y_test, y_pred):
 ## --------------------------------------------------------------------
 # Combine all measures with subject info
 ## --------------------------------------------------------------------
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','analysis')
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
 for k in range(3):
     outputfile = outputfile_label[k]
 
-    fname_var = os.path.join(parent_folder,'TOPSY_subjectspec_variables.csv')
+    fname_var = os.path.join(os.path.dirname(parent_folder),'variables','TOPSY_subjectspec_variables.csv')
     df_var = pd.read_csv(fname_var)
 
     fname = os.path.join(parent_folder,'topic_measures_' + outputfile + '.csv')

@@ -14,52 +14,44 @@ from scipy.stats import pearsonr
 ## --------------------------------------------------------------------
 # Get list of folder and file names
 current_directory = os.path.dirname(os.path.abspath(__file__))
-parent_folder = os.path.dirname(current_directory)
-child_folders = [folder for folder in os.listdir(parent_folder) if os.path.isdir(os.path.join(parent_folder, folder))]
-text_file_list = []
-folder_file = {}
-for child_folder in child_folders:
-    child_folder_path = os.path.join(parent_folder, child_folder)
-    text_files = [file for file in os.listdir(child_folder_path) if file.endswith(".txt")]
-    folder_file[child_folder] = text_files
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
+text_files = [file for file in os.listdir(parent_folder) if file.endswith(".txt")]
 
 ## --------------------------------------------------------------------
 # Get list of missing words, and included content words
 ## --------------------------------------------------------------------
 missing_words_list = {}
 content_words_list = {}
-for foldername, filenames in folder_file.items():
-    print(f'folder: {foldername}')
-    for filename in filenames:
-        print(f'file: {filename}')
-        fname = os.path.join(parent_folder, foldername, filename)
-        stim = read_data_fromtxt(fname)
-        
-        #only first response
-        #stim_all = stim['P1']
-        
-        #up to time out
-        stim_cmb = get_speech_before_time_up(stim)
-        if len(stim_cmb[0]) > 1: #if there are more than 1 turn
-            stim_all = ' '.join(stim_cmb)
-        else:
-            stim_all = stim_cmb
-        
-        #all speech
-        #stim_cmb = [stim[key] for key in stim if key.startswith('P')]
-        #stim_all = ' '.join(stim_cmb)
-                
-        content_words = get_content_words(stim_all)
-        content_words_list[filename.split('.')[0][6:]] = content_words
-        _,missing_words = get_word2vec(content_words)
-        missing_words_list[filename.split('.')[0][6:]] = missing_words       
+for filename in text_files:
+    print(f'file: {filename}')
+    fname = os.path.join(parent_folder, filename)
+    stim = read_data_fromtxt(fname)
+    
+    #only first response
+    #stim_all = stim['P1']
+    
+    #up to time out
+    #stim_cmb = get_speech_before_time_up(stim)
+    #if len(stim_cmb[0]) > 1: #if there are more than 1 turn
+    #    stim_all = ' '.join(stim_cmb)
+    #else:
+    #    stim_all = stim_cmb
+    
+    #all speech
+    stim_cmb = [stim[key] for key in stim if key.startswith('P')]
+    stim_all = ' '.join(stim_cmb)
+            
+    content_words = get_content_words(stim_all)
+    content_words_list[filename.split('.')[0][6:]] = content_words
+    _,missing_words = get_word2vec(content_words)
+    missing_words_list[filename.split('.')[0][6:]] = missing_words       
 concatenated_values = [value for values in missing_words_list.values() for value in values]
 all_content_words = [value for values in content_words_list.values() for value in values]
 unique_words_all = set(all_content_words)
-with open(os.path.join(parent_folder, 'removed_words_word2vec_spontaneous.txt'), 'w') as file:
+with open(os.path.join(parent_folder, 'analysis', 'removed_words_word2vec_spontaneous.txt'), 'w') as file:
     for word in concatenated_values:
         file.write(word  +'\n')
-with open(os.path.join(parent_folder, 'unique_words_spontaneous.txt'), 'w') as file:
+with open(os.path.join(parent_folder, 'analysis', 'unique_words_spontaneous.txt'), 'w') as file:
     for word in unique_words_all:
         file.write(word + '\n')
 
@@ -72,16 +64,15 @@ with open(os.path.join(parent_folder, 'unique_words_spontaneous.txt'), 'w') as f
 mode_label = ['before_time_up','spontaneous', 'full_speech']
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
 
-for k in range(1):
+for k in range(3):
     mode = mode_label[k]
     outputfile = outputfile_label[k]
 
     word2vec_similarity = {}
-    for foldername, filenames in folder_file.items():
-        print(f'folder: {foldername}')
-        for filename in filenames:
+    for filename in text_files:
+        for filename in filename:
             print(f'file: {filename}')
-            id_stim, w2v_sim, num_all_words, num_content_words, num_repetition = process_file_w2v(parent_folder, foldername, filename, mode=mode)
+            id_stim, w2v_sim, num_all_words, num_content_words, num_repetition = process_file_w2v(parent_folder, filename, mode=mode)
             word2vec_similarity[id_stim] = {'w2v_sim': w2v_sim, 'num_all_words': num_all_words, 'num_content_words': num_content_words, 'num_repetition': num_repetition}
 
     result_data = [(id_stim, *similarity_values['w2v_sim'], similarity_values['num_all_words'], similarity_values['num_content_words'], similarity_values['num_repetition']) for id_stim, similarity_values in word2vec_similarity.items()]
@@ -91,51 +82,40 @@ for k in range(1):
     result_df.drop(columns=['ID_stim'], inplace=True)
     result_df = result_df[['ID', 'stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'num_all_words', 'num_content_words', 'num_repetition']]
     result_df['ID'] = result_df['ID'].astype('int64')
-    fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
+    fname = os.path.join(parent_folder, 'analysis', 'word2vec_' + outputfile + '.csv')
     result_df.to_csv(fname,index=False)
 
 
 ## --------------------------------------------------------------------
 # Combine with subject info
 ## --------------------------------------------------------------------
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
+current_directory = os.path.dirname(os.path.abspath(__file__))
+parent_folder = os.path.join(os.path.dirname(current_directory),'stimuli','Relabeld')
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
 for k in range(3):
     outputfile = outputfile_label[k]
-    fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
+    fname = os.path.join(parent_folder,'analysis', 'word2vec_' + outputfile + '.csv')
     df_w2v = pd.read_csv(fname)
     
-    df_w2v.loc[df_w2v['stim'] == 'Picture 1','stim']='Picture1'
-    df_w2v = df_w2v.drop(df_w2v[df_w2v['stim'] == 'Picture4'].index)
-    df_w2v.dropna(subset=['stim'], inplace=True)
-    fname = os.path.join(parent_folder,'word2vec_' + outputfile + '.csv')
-    df_w2v.to_csv(fname, index=False)
-
-    fname_var = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv') #containing topic measures
+    fname_var = os.path.join(os.path.dirname(parent_folder),'variables','TOPSY_subjectspec_variables.csv')
     df_var = pd.read_csv(fname_var)
 
     df_merge = df_var.merge(df_w2v, on=['ID','stim'],how='outer')
+    
+    # all participants
     filtered_df = df_merge.dropna(subset = df_merge.columns[1:].tolist(), how='all')
     filtered_df.drop(columns=['nword'], inplace=True)
 
-    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
-    filtered_df.to_csv(fname_all,index=False)
-
+    # only two groups
     df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
-    df_goi.to_csv(fname_goi,index=False)
 
 
 ## --------------------------------------------------------------------
 # Visualize
 ## --------------------------------------------------------------------
 # Compare between two groups
-parent_folder = r'/Users/linwang/Dropbox (Partners HealthCare)/OngoingProjects/sczTopic/stimuli/'
-fname_var = os.path.join(parent_folder,'TOPSY_TwoGroups_1min.csv')
-df = pd.read_csv(fname_var)
-index_to_remove = df[df['stim'] == 'Picture4'].index
-df = df.drop(index_to_remove)
-filtered_df = df.loc[(df['PatientCat'] == 1) | (df['PatientCat'] == 2), 
+
+filtered_df = filtered_df.loc[(filtered_df['PatientCat'] == 1) | (filtered_df['PatientCat'] == 2), 
                          ['ID', 'PatientCat', 'PANSS Pos', 'TLI_DISORG', 'stim', 'n_segment', 
                           'entropyApproximate', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5']]
 filtered_df.dropna(inplace=True)

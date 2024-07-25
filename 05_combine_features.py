@@ -135,11 +135,11 @@ for k in range(3):
     filtered_df = merged_df.dropna(subset = ['stim'], how='all')
     filtered_df.drop(columns=['nsen','nword','subord_index'], inplace=True)
     
-    fname_all = os.path.join(parent_folder,'TOPSY_all_' + outputfile + '.csv')
+    fname_all = os.path.join(parent_folder,'analysis','TOPSY_all_' + outputfile + '.csv')
     filtered_df.to_csv(fname_all,index=False)
 
     df_goi = filtered_df.loc[(filtered_df['PatientCat']==1) | (filtered_df['PatientCat']==2)]
-    fname_goi = os.path.join(parent_folder,'TOPSY_TwoGroups_' + outputfile + '.csv')
+    fname_goi = os.path.join(parent_folder,'analysis','TOPSY_TwoGroups_' + outputfile + '.csv')
     df_goi.to_csv(fname_goi,index=False)
 
 

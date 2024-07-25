@@ -129,7 +129,7 @@ def get_sentence_similarity_backwards(parent_folder, filename, backN, mode):
         cosine_similarities = np.array(cosine_similarities)
         mean_sim = np.mean(cosine_similarities,0)
     else:
-        mean_sim = np.full((4,), np.nan)
+        mean_sim = np.full((backN,), np.nan)
     
     # Get number of segments
     n_segment = len(stim_sen)
@@ -156,32 +156,32 @@ text_files = [file for file in os.listdir(parent_folder) if file.endswith(".txt"
 ## --------------------------------------------------------------------
 mode_label = ['before_time_up','spontaneous', 'full_speech']
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
-k = 2
-mode = mode_label[k]
-outputfile = outputfile_label[k]
+for k in range(3):
+    mode = mode_label[k]
+    outputfile = outputfile_label[k]
 
-similarity_measures = {}
-for filename in text_files:
-    print(f'file: {filename}')
-    id_stim, consec_mean, consec_std, consec_diff_std, s0_mean, s0_std, s0_diff_std, n_segment = get_sentence_similarity(parent_folder, filename, mode)
-    similarity_measures[id_stim] = {'consec_mean': consec_mean,
-                                'consec_std': consec_std,
-                                'consec_diff_std': consec_diff_std,
-                                's0_mean': s0_mean,
-                                's0_std': s0_std,
-                                's0_diff_std': s0_diff_std,
-                                'n_segment': n_segment
-                                }
-result_data = []
-for id_stim, values in similarity_measures.items():
-    result_data.append((id_stim, values['consec_mean'], values['consec_std'], values['consec_diff_std'],values['s0_mean'], values['s0_std'], values['s0_diff_std'], values['n_segment']))
-columns = ['ID_stim', 'consec_mean', 'consec_std', 'consec_diff_std', 's0_mean', 's0_std', 's0_diff_std', 'n_segment']
-result_df = pd.DataFrame(result_data, columns=columns)
-result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
-result_df.drop(columns=['ID_stim'], inplace=True)
-result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'analysis','similarity_measures_' + outputfile + '.csv')
-result_df.to_csv(fname, index=False)
+    similarity_measures = {}
+    for filename in text_files:
+        print(f'file: {filename}')
+        id_stim, consec_mean, consec_std, consec_diff_std, s0_mean, s0_std, s0_diff_std, n_segment = get_sentence_similarity(parent_folder, filename, mode)
+        similarity_measures[id_stim] = {'consec_mean': consec_mean,
+                                    'consec_std': consec_std,
+                                    'consec_diff_std': consec_diff_std,
+                                    's0_mean': s0_mean,
+                                    's0_std': s0_std,
+                                    's0_diff_std': s0_diff_std,
+                                    'n_segment': n_segment
+                                    }
+    result_data = []
+    for id_stim, values in similarity_measures.items():
+        result_data.append((id_stim, values['consec_mean'], values['consec_std'], values['consec_diff_std'],values['s0_mean'], values['s0_std'], values['s0_diff_std'], values['n_segment']))
+    columns = ['ID_stim', 'consec_mean', 'consec_std', 'consec_diff_std', 's0_mean', 's0_std', 's0_diff_std', 'n_segment']
+    result_df = pd.DataFrame(result_data, columns=columns)
+    result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
+    result_df.drop(columns=['ID_stim'], inplace=True)
+    result_df['ID'] = result_df['ID'].astype('int64')
+    fname = os.path.join(parent_folder,'analysis','similarity_measures_' + outputfile + '.csv')
+    result_df.to_csv(fname, index=False)
 
 
 
@@ -191,25 +191,25 @@ result_df.to_csv(fname, index=False)
 ## --------------------------------------------------------------------
 mode_label = ['before_time_up','spontaneous', 'full_speech']
 outputfile_label = ['1min', 'spontaneous', 'concatenated']
-k = 2
-mode = mode_label[k]
-outputfile = outputfile_label[k]
+for k in range(3):
+    mode = mode_label[k]
+    outputfile = outputfile_label[k]
 
-similarity_measures = {}
-for filename in text_files:
-    print(f'file: {filename}')
-    id_stim, mean_sim, _ = get_sentence_similarity_backwards(parent_folder, filename, 4, mode)
-    similarity_measures[id_stim] = {'similarity': mean_sim}
-result_data = []
-for id_stim, values in similarity_measures.items():
-    result_data.append((id_stim, values['similarity'][0],values['similarity'][1],values['similarity'][2],values['similarity'][3]))
-columns = ['ID_stim', 'senN_4', 'senN_3', 'senN_2', 'senN_1']
-result_df = pd.DataFrame(result_data, columns=columns)
-result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
-result_df.drop(columns=['ID_stim'], inplace=True)
-result_df['ID'] = result_df['ID'].astype('int64')
-fname = os.path.join(parent_folder,'analysis','SenSimilarity_backwards_measures_' + outputfile + '.csv')
-result_df.to_csv(fname, index=False)
+    similarity_measures = {}
+    for filename in text_files:
+        print(f'file: {filename}')
+        id_stim, mean_sim, _ = get_sentence_similarity_backwards(parent_folder, filename, 4, mode)
+        similarity_measures[id_stim] = {'similarity': mean_sim}
+    result_data = []
+    for id_stim, values in similarity_measures.items():
+        result_data.append((id_stim, values['similarity'][0],values['similarity'][1],values['similarity'][2],values['similarity'][3]))
+    columns = ['ID_stim', 'senN_4', 'senN_3', 'senN_2', 'senN_1']
+    result_df = pd.DataFrame(result_data, columns=columns)
+    result_df[['ID', 'stim']] = result_df['ID_stim'].str.split('_', expand=True)
+    result_df.drop(columns=['ID_stim'], inplace=True)
+    result_df['ID'] = result_df['ID'].astype('int64')
+    fname = os.path.join(parent_folder,'analysis','SenSimilarity_backwards_measures_' + outputfile + '.csv')
+    result_df.to_csv(fname, index=False)
 
 
 

@@ -70,10 +70,9 @@ for k in range(3):
 
     word2vec_similarity = {}
     for filename in text_files:
-        for filename in filename:
-            print(f'file: {filename}')
-            id_stim, w2v_sim, num_all_words, num_content_words, num_repetition = process_file_w2v(parent_folder, filename, mode=mode)
-            word2vec_similarity[id_stim] = {'w2v_sim': w2v_sim, 'num_all_words': num_all_words, 'num_content_words': num_content_words, 'num_repetition': num_repetition}
+        print(f'file: {filename}')
+        id_stim, w2v_sim, num_all_words, num_content_words, num_repetition = process_file_w2v(parent_folder, filename, mode=mode)
+        word2vec_similarity[id_stim] = {'w2v_sim': w2v_sim, 'num_all_words': num_all_words, 'num_content_words': num_content_words, 'num_repetition': num_repetition}
 
     result_data = [(id_stim, *similarity_values['w2v_sim'], similarity_values['num_all_words'], similarity_values['num_content_words'], similarity_values['num_repetition']) for id_stim, similarity_values in word2vec_similarity.items()]
     columns = ['ID_stim', 'n_1', 'n_2', 'n_3', 'n_4', 'n_5', 'num_all_words', 'num_content_words', 'num_repetition']

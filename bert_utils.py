@@ -162,22 +162,32 @@ def get_content_words(stim_all):
 
 
 
-
 def count_repetition(word_list, window_size):
-    ''' It is used to identify the repeated words within a small window of text
-        word_list: a list word to check for repetition
-        window_size: a number that defines how many words to check for repetition'''
+    '''Identify repeated words within a small window of text.
+       word_list: a list of words to check for repetition
+       window_size: the number of words to check for repetition'''
+
+    # Initialize a Counter object to count repeated words
     word_with_repeated_counts = Counter()
+    
+    # Handle edge cases
+    if len(word_list) == 0:
+        return word_with_repeated_counts  # Return empty Counter if list is empty
+    
+    # Iterate through the word list to count repetitions
     for i in range(len(word_list)):
         word = word_list[i]
         start_index = max(0, i - window_size)
         end_index = i
         # Extract the preceding words within the window
         window = word_list[start_index:end_index]
-        if word in window and len(window) > 1:
+        
+        # Count repetitions
+        if word in window and len(window) > 0:
             word_with_repeated_counts[word] += 1
-    return word_with_repeated_counts
     
+    return word_with_repeated_counts
+
     
     
     
@@ -193,6 +203,7 @@ def get_word2vec(content_words):
     similarities = []
     if len(content_words) < 5:
         similarities = np.full((5,), np.nan)
+        similarity_df = pd.DataFrame(np.nan, index=range(1), columns=columns)
     else:
         for i in range(5, len(content_words)):
             word_n_minus_1 = content_words[i - 1]
@@ -210,7 +221,7 @@ def get_word2vec(content_words):
             
             similarities.append([similarity_n_1, similarity_n_2, similarity_n_3, similarity_n_4, similarity_n_5])
     
-    similarity_df = pd.DataFrame(similarities, columns=columns)
+        similarity_df = pd.DataFrame(similarities, columns=columns)
     return similarity_df, missing_words
 
 
@@ -274,7 +285,7 @@ def process_file_w2v(parent_folder, filename, mode):
     w2v_sim = df_similarity.mean(axis=0).to_numpy()
     
     #number of all words, including stop words
-    num_all_words = len(stim_all.split())
+    num_all_words = len(re.sub('….','',stim_all).split())
     
     #number of content words
     num_content_words = len(content_words) 

@@ -64,10 +64,10 @@ def get_sentence_similarity(parent_folder, filename, mode):
     
     embeddings = model.encode(stim_full) #number_sen * 384 embeddings
     
-    # Task 1: Similarity between consecutive sentences
+    # Similarity between consecutive sentences
     consecutive_similarities = cosine_similarity(embeddings[1:], embeddings[:-1]).diagonal()
 
-    # Task 2: Similarity between each sentence s1, s2, ..., s12 and s0
+    # Similarity between each sentence s1, s2, ..., s12 and s0
     s0_similarities = cosine_similarity(embeddings[1:], embeddings[0].reshape(1, -1)).flatten()
 
     # get summary measures

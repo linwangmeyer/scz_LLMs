@@ -226,6 +226,10 @@ print(f"Mean Absolute Error (DISORG): {mae_disorg}")
 print(f"R2 (IMPOV): {r2_impov}")
 print(f"R2 (DISORG): {r2_disorg}")
 
+# Test for assumptions
+residual_analysis(y_test['TLI_IMPOV'], y_pred_impov)
+residual_analysis(y_test['TLI_DISORG'], y_pred_disorg)
+
 # Retrieve coefficients and feature names
 coefficients_impov = best_lasso_impov.coef_
 coefficients_disorg = best_lasso_disorg.coef_

@@ -54,8 +54,7 @@ This project aims to extract language features from speech samples. The extract 
 # Exploratory data analysis (EDA)
 
 ## Check for missing values —> ignore all cognitive function measures
-
-![01_EDA_MissingValues](https://github.com/user-attachments/assets/c1c89779-4d3e-4229-a972-9487f79a6b85)
+<img src="https://github.com/user-attachments/assets/c1c89779-4d3e-4229-a972-9487f79a6b85" alt="01_EDA_MissingValues" width="50%"/>
 
 # Feature selection
 
@@ -63,8 +62,7 @@ This project aims to extract language features from speech samples. The extract 
 
 - Remove data points with `average_word_frequency < 4.5`, `N_fillers > 20`, `content_function_ratio > 2.0`
 - Remove variables with skewed distributions: `N_immediate_repetition`
-
-![02_EDA_DistributionOutlier](https://github.com/user-attachments/assets/4ebe40d9-1e0a-456a-96a9-ec675cf86a57)
+<img src="https://github.com/user-attachments/assets/4ebe40d9-1e0a-456a-96a9-ec675cf86a57" alt="02_EDA_DistributionOutlier" width="50%"/>
 
 ### Check pairwise correlation
 
@@ -76,22 +74,20 @@ Check pairwise correlation matrix to remove or combine variables that are highly
 'num_all_words', 'num_content_words', 'length_utter’
 
 #### Before feature selection:
-![03_EDA_PairwiseRawVars](https://github.com/user-attachments/assets/d5dcc137-3071-4ed7-b101-1586162df17b)
+<img src="https://github.com/user-attachments/assets/d5dcc137-3071-4ed7-b101-1586162df17b" alt="03_EDA_PairwiseRawVars" width="50%"/>
 
 #### After feature selection:
-![04_EDA_PairwiseNewVars](https://github.com/user-attachments/assets/84a3e3f1-c5cf-4cfa-b889-717ba15a6809)
+<img src="https://github.com/user-attachments/assets/84a3e3f1-c5cf-4cfa-b889-717ba15a6809" alt="04_EDA_PairwiseNewVars" width="50%"/>
 
 ## Visualize data patterns
 
 ### Continuous variables
 Visualize how the continuous dependent variables correlate to the language features.
-
-![05_EDA_pairplot_continuousVars](https://github.com/user-attachments/assets/eed104cc-7dd2-41b1-a26c-eb7d08b40a05)
+<img src="https://github.com/user-attachments/assets/eed104cc-7dd2-41b1-a26c-eb7d08b40a05" alt="05_EDA_pairplot_continuousVars" width="50%"/>
 
 ### Categorical variables
 Visualize how the Categorical dependent variables correlate to the language features.
-
-![06_EDA_byPateintCategory](https://github.com/user-attachments/assets/69d63410-3e29-49ce-b68d-ed1abd607f7f)
+<img src="https://github.com/user-attachments/assets/69d63410-3e29-49ce-b68d-ed1abd607f7f" alt="06_EDA_byPateintCategory" width="50%"/>
 
 # Model continuous measures (TIL_IMPOV and TIL_DISORG)
 
@@ -126,8 +122,8 @@ For TLI_IMPOV:
 For TLI_DISORG:
 
 ```python
-'s0_mean', 'num_repetition', 'false_starts', 'type_token_ratio', 'clause_density', 'N_fillers', 'consec_mean', 'Age', 'self_corrections',
-       'Gender_M', 'dependency_distance'
+'s0_mean', 'num_repetition', 'false_starts', 'type_token_ratio', 'clause_density', 'N_fillers', 'consec_mean', 'Age',
+ 'self_corrections', 'Gender_M', 'dependency_distance'
 ```
 
 # Model categorical data (HC vs. FEP)
@@ -141,16 +137,16 @@ For TLI_DISORG:
 ### Random forest
 
 #### Model performance: 85% accuracy
-<img width="519" alt="ML_05_Accuracy_RandomForest" src="https://github.com/user-attachments/assets/63cd2d87-53ba-4f18-8b2a-f4609a291576">
+<img width="500" alt="ML_05_Accuracy_RandomForest" src="https://github.com/user-attachments/assets/63cd2d87-53ba-4f18-8b2a-f4609a291576">
 
 #### Ranking the predictors based on their importance
-![ML_03_RandomForest_PatientCat_beta](https://github.com/user-attachments/assets/d2992845-90c8-4ecc-b173-8ceeb44d291d)
+<img src="https://github.com/user-attachments/assets/d2992845-90c8-4ecc-b173-8ceeb44d291d" alt="ML_03_RandomForest_PatientCat_beta" width="50%"/>
 
 ### L1 regularized logistic regression
 
 #### Model performance: 65% accuracy
-<img width="554" alt="ML_06_FeatureImportance_LogisticRegression" src="https://github.com/user-attachments/assets/238abdd7-3476-4cf8-aeea-d8671a4080da">
+<img width="500" alt="ML_06_FeatureImportance_LogisticRegression" src="https://github.com/user-attachments/assets/238abdd7-3476-4cf8-aeea-d8671a4080da">
 
 #### Ranking the predictors based on their importance
-![ML_04_Lasso_PredictPANSS_Pos_beta](https://github.com/user-attachments/assets/b9998774-b474-4b80-a917-8267d7f2490b)
+<img src="https://github.com/user-attachments/assets/b9998774-b474-4b80-a917-8267d7f2490b" alt="ML_04_Lasso_PredictPANSS_Pos_beta" width="50%"/>
 

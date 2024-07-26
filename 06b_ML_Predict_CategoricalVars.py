@@ -230,9 +230,7 @@ print("Mean CV score:", cv_scores.mean())
 
 # Check if coefficients are zero
 coefficients = best_model.coef_[0]
-if np.all(coefficients == 0):
-    print("All coefficients are zero. This indicates too strong regularization.")
-else:
+if ~np.all(coefficients == 0):
     # Extracting and sorting coefficients
     feature_names = X_train.columns
     coef_df = pd.DataFrame({
@@ -248,11 +246,12 @@ else:
     print(coef_df)
 
     plt.figure(figsize=(10, 6))
-    sns.barplot(x='Absolute Coefficient', y='Feature', data=coef_df)
+    sns.barplot(x='Coefficient', y='Feature', data=coef_df)
     plt.title('Feature Importance (Elastic Net Coefficients)')
-    plt.savefig(os.path.join(parent_folder,'plots','ML_03_Classification_beta.png'), format='png', bbox_inches='tight')
+    plt.savefig(os.path.join(parent_folder,'plots','ML_05_ElasticNet_PatientCat_beta.png'), format='png', bbox_inches='tight')
     plt.show()
-    
+else:
+    print("All coefficients are zero. This indicates too strong regularization.")
 
 
 

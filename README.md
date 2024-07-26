@@ -2,38 +2,155 @@
 
 We transcribed and analyzed speech data from 70 treatment-naive, first-episode psychosis patients and 34 demographically-matched controls who described three images for one minute each.
 
-# Analysis
+# Aims of the project
 
-We used BERTopic and Word2Vec to probe message-level and meaning-level representations of the picture descriptions. We also visualized the results and conducted statistical tests to evaluate how participant group, positive thought disorder, sentence level and other variables affect these measures.
+This project aims to extract language features from speech samples. The extract features are used to predict (1) continuous Thought Language Index (TLI) impoverishment and disorganization scores; (2) Categorical Participant Group (Healthy controls vs. patients with first episodic psychosis)
 
-## BERTopic (’01_get_BERTopic.py’)
+# Extract language features
 
-We used a pre-trained BERTopic model with 2376 common topics discussed on Wikipedia to probe higher-level topic representations of all picture descriptions. We obtained the topic distributions and quantified the entropy of the topic distribution for each picture description. There are three methods available (see below). We used the first method because it captures moment-by-moment topics in the descriptions.
+## Sentence-level coherence
 
-For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).
+```python
+'senN_4', 'senN_3', 'senN_2', 'senN_1'
+```
 
-### Approximate method
+## Disfluency
 
-The whole document is first segmented into tokensets using a moving time window (we chose ~30 words for each window). For each of these tokensets, we used their embedding vectors and find out how similar they are to the representations of previously generated topics. For each topic, the similarity values between the topic and all tokensets are summed, giving rise to one value for one topic. These similarity values across all topics are then normalized (by dividing each similarity value with the sum of the absolute similarity value) to create a topic distribution for the entire document.
+```python
+ 
+ 'N_fillers', 'N_immediate_repetation', 'false_starts', 'self_corrections'
+```
 
-### Transform method
+## Word-level association
 
-The model aims to assign the new document to a pre-existing topic that best aligns with its content. It goes through the BERTopic pipeline (embeddings -> dimensionality reduction -> clustering). However, the clustering process is slightly different from the training step. For new document, the model calculates the similarity between the embedding of the new document and the centroids of the pre-existing clusters (topics) from the training data. This similarity helps identify the most suitable cluster for the new document. 
+```python
+'n_1', 'n_2', 'n_3', 'n_4', 'n_5' (#similarity between every word and its preceeding N words)
+```
 
-We found that, although there were no differences in the topic entropy between schizophrenia and control participants, within the patient group, higher entropy strongly correlated with more severe positive thought disorder.
+## Lexical-level
 
-### Similarity method
+```python
+'type_token_ratio','average_word_frequency'
+```
 
-This method merely calculates the embeddings of its inputs and compares that with the topic embeddings, where the topic embeddings are the average embeddings of all documents in the topic. The most similar topic embeddings are then selected. This is a bit more rough and is typically not intended for finding which topic a document belongs to.
+## discourse topic-level
 
-## Word2Vec (’02_get_word2vec.py’)
+```python
+'entropyApproximate' (#the diversity of the topic distribution; For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).), 's0_mean' (#similarity between everything sentence and the picture label), 'consec_mean' (#similarity between the current sentence and its previous sentence)
+```
 
-We also used a pre-trained Word2Vec model with 300-dimensional word embeddings to probe lower-level meaning representations. We calculated cosine similarity between word pairs, focusing on the similarity between a word and its three preceding words (e.g., n & n-1, n & n-2, n & n-3, n & n-4, n& n-5) within each speech sample.
+## Syntactic complexity
 
-# Findings
+```python
+'clause_density', 'dependency_distance', 'content_function_ratio'
+```
 
-- For patients with schizophrenia, greater topic entropy correlates with positive thought disorder scores.
-![relationship between topic distribution and positive thought disorder](https://github.com/linwangmeyer/scz_LLMs/blob/master/plots/Entropy_LTI_patient_scatterplot.png)
-  
-- Patients with schizophrenia show greater local semantic associations than healthy controls.
-![word2vec similarity difference between patients and controls](https://github.com/linwangmeyer/scz_LLMs/blob/master/plots/W2v_PatientCat_wordpos_lineplot.png)
+## Other relevant variables
+
+```python
+'n_segment', 'length_utter','num_all_words', 'num_content_words', 'num_repetition'
+```
+
+# Exploratory data analysis (EDA)
+
+## Check for missing values —> ignore all cognitive function measures
+
+![01_EDA_MissingValues](https://github.com/user-attachments/assets/c1c89779-4d3e-4229-a972-9487f79a6b85)
+
+# Feature selection
+
+### Visualize the distribution of all variables and identify outliers
+
+- Remove data points with `average_word_frequency < 4.5`, `N_fillers > 20`, `content_function_ratio > 2.0`
+- Remove variables with skewed distributions: `N_immediate_repetition`
+
+![02_EDA_DistributionOutlier](https://github.com/user-attachments/assets/4ebe40d9-1e0a-456a-96a9-ec675cf86a57)
+
+### Check pairwise correlation
+
+Check pairwise correlation matrix to remove or combine variables that are highly correlated
+
+- n_1, n_2, n_3, n_4 and n_5: calculate the means to represent local word associations
+- sen_1, sen_2, sen_3, sen_4: calculate the means to represent local semantic coherence
+- Use VIF to identify highly correlated variables (VIF > 10): 
+'num_all_words', 'num_content_words', 'length_utter’
+
+#### Before feature selection:
+![03_EDA_PairwiseRawVars](https://github.com/user-attachments/assets/d5dcc137-3071-4ed7-b101-1586162df17b)
+
+#### After feature selection:
+![04_EDA_PairwiseNewVars](https://github.com/user-attachments/assets/84a3e3f1-c5cf-4cfa-b889-717ba15a6809)
+
+## Visualize data patterns
+
+### Continuous variables
+Visualize how the continuous dependent variables correlate to the language features.
+
+![05_EDA_pairplot_continuousVars](https://github.com/user-attachments/assets/eed104cc-7dd2-41b1-a26c-eb7d08b40a05)
+
+### Categorical variables
+Visualize how the Categorical dependent variables correlate to the language features.
+
+![06_EDA_byPateintCategory](https://github.com/user-attachments/assets/69d63410-3e29-49ce-b68d-ed1abd607f7f)
+
+# Model continuous measures (TIL_IMPOV and TIL_DISORG)
+
+### Lasso Regression for Feature Selection
+
+- Use cross-validation to identify the best hyperparameters for the lasso regression:
+
+```python
+Best alpha for IMPOV: 0.02848035868435799
+Best Mean Absolute Error (IMPOV): 0.15227086130242762
+Best alpha for DISORG: 0.05462277217684337
+Best Mean Absolute Error (DISORG): 0.26148430772065
+```
+
+- Use the identified hyperparameter to test the model
+
+```python
+Mean Absolute Error (IMPOV): 0.33674784603513247
+Mean Absolute Error (DISORG): 0.5009238250371127
+R2 (IMPOV): 0.15227086130242762
+R2 (DISORG): 0.26148430772065
+```
+
+### Most Predictive Variables
+
+For TLI_IMPOV:
+
+```python
+'type_token_ratio', 'num_repetition', 'entropyApproximate', 'average_word_frequency', 'Age', 'Gender_M', 'self_corrections'
+```
+
+For TLI_DISORG:
+
+```python
+'s0_mean', 'num_repetition', 'false_starts', 'type_token_ratio', 'clause_density', 'N_fillers', 'consec_mean', 'Age', 'self_corrections',
+       'Gender_M', 'dependency_distance'
+```
+
+# Model categorical data (HC vs. FEP)
+
+## Deal with unbalanced data (36 HC vs. 64 FEP)
+
+- Use MOTE to upsample data with less samples
+
+## Try out different models
+
+### Random forest
+
+#### Model performance: 85% accuracy
+<img width="519" alt="ML_05_Accuracy_RandomForest" src="https://github.com/user-attachments/assets/63cd2d87-53ba-4f18-8b2a-f4609a291576">
+
+#### Ranking the predictors based on their importance
+![ML_03_RandomForest_PatientCat_beta](https://github.com/user-attachments/assets/d2992845-90c8-4ecc-b173-8ceeb44d291d)
+
+### L1 regularized logistic regression
+
+#### Model performance: 65% accuracy
+<img width="554" alt="ML_06_FeatureImportance_LogisticRegression" src="https://github.com/user-attachments/assets/238abdd7-3476-4cf8-aeea-d8671a4080da">
+
+#### Ranking the predictors based on their importance
+![ML_04_Lasso_PredictPANSS_Pos_beta](https://github.com/user-attachments/assets/b9998774-b474-4b80-a917-8267d7f2490b)
+

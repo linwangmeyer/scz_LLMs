@@ -130,7 +130,7 @@ For TLI_DISORG:
 
 ## Deal with unbalanced data (36 HC vs. 64 FEP)
 
-- Use MOTE to upsample data with less samples
+- Use SMOTE to upsample data with less samples
 
 ## Try out different models
 

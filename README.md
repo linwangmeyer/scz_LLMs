@@ -33,12 +33,14 @@ This project aims to extract language features from speech samples. The extract 
 'type_token_ratio','average_word_frequency'
 ```
 
-## discourse topic-level
+## Discourse topic-level
 
 ```python
-'entropyApproximate' (#the diversity of the topic distribution; For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).), 's0_mean' (#similarity between everything sentence and the picture label), 'consec_mean' (#similarity between the current sentence and its previous sentence)
+'entropyApproximate' (#the diversity of the topic distribution)
+'s0_mean' (#similarity between everything sentence and the picture label),
+'consec_mean' (#similarity between the current sentence and its previous sentence)
 ```
-
+For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).
 ## Syntactic complexity
 
 ```python

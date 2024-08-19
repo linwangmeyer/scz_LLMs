@@ -17,8 +17,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
+from imblearn.over_sampling import SMOTE
+from sklearn.svm import SVC
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
+from sklearn.naive_bayes import GaussianNB
+from psmpy import PsmPy
+import scipy.stats as stats
 
 ## --------------------------------------------------------------------
 # Some functions
@@ -98,6 +103,9 @@ outputfile = outputfile_label[1]
 fname = os.path.join(parent_folder,'clean_all_' + outputfile + '.csv')
 df = pd.read_csv(fname)
 
+# --------------------------------------------
+# Get data with oversampling
+#--------------------------------------------
 # Get data with or without Gender as a predictor
 df_sel = preprocess_data_cat(df.copy(), include_gender=True)
 
@@ -108,28 +116,28 @@ target_variables = ['PatientCat']
 df_sel = df_sel[sel_predictors+target_variables].dropna()
 
 # Get training and testing datasets
-X = df_sel[sel_predictors]
+X = df_sel[sel_predictors[1:-1]]
 y = df_sel[target_variables]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 
 # Normalize training data
 X_train_scaled, X_test_scaled = normalize_data(X_train,X_test)
 
-# Handle class imbalance using SMOTE
+#comment out if you don't want to use SMOTE to deal with imbalanced data
 smote = SMOTE(random_state=42)
 X_train_resampled, y_train_resampled = smote.fit_resample(X_train_scaled, y_train)
-
 
 #------------------------------------------------------------
 # Random forest, over sampling to deal with imbalanced data
 #------------------------------------------------------------
 model = RandomForestClassifier(random_state=42, class_weight='balanced')
-model.fit(X_train_resampled, y_train_resampled)
+model.fit(X_train_scaled, y_train)
 y_pred = model.predict(X_test_scaled)
 
 # Evaluate the model
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
+print(confusion_matrix(y_test,y_pred))
 
 # Check feature importances
 importances = model.feature_importances_
@@ -152,7 +160,7 @@ plt.show()
 
 # Perform cross-validation to evaluate accuracy
 cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores = cross_val_score(model, X_train_resampled, y_train_resampled, cv=cv, scoring='accuracy')
+cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring='accuracy')
 print(f"Cross-validation scores: {cv_scores}")
 print(f"Mean cross-validation score: {cv_scores.mean()}")
 
@@ -170,7 +178,7 @@ param_grid = {
 
 logreg = LogisticRegression()
 grid_search = GridSearchCV(logreg, param_grid, cv=5, scoring='accuracy')
-grid_search.fit(X_train_resampled, y_train_resampled)
+grid_search.fit(X_train_scaled, y_train)
 print(f"Best parameters: {grid_search.best_params_}")
 
 # Use the best estimator for predictions
@@ -178,6 +186,7 @@ best_logreg = grid_search.best_estimator_
 y_pred = best_logreg.predict(X_test_scaled)
 
 # Evaluate the model
+print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 print(confusion_matrix(y_test, y_pred))
 
@@ -212,7 +221,7 @@ param_grid = {
 }
 
 grid_search = GridSearchCV(model, param_grid, cv=5, scoring='accuracy', n_jobs=-1)
-grid_search.fit(X_train_resampled, y_train_resampled)
+grid_search.fit(X_train_scaled, y_train)
 
 # Best model
 best_model = grid_search.best_estimator_
@@ -248,18 +257,73 @@ if ~np.all(coefficients == 0):
     plt.figure(figsize=(10, 6))
     sns.barplot(x='Coefficient', y='Feature', data=coef_df)
     plt.title('Feature Importance (Elastic Net Coefficients)')
-    plt.savefig(os.path.join(parent_folder,'plots','ML_05_ElasticNet_PatientCat_beta.png'), format='png', bbox_inches='tight')
+    plt.savefig(os.path.join(parent_folder,'plots','ML_07_ElasticNet_PatientCat_beta.png'), format='png', bbox_inches='tight')
     plt.show()
 else:
     print("All coefficients are zero. This indicates too strong regularization.")
 
+# ------------------------------------------------------------------------------
+# Naive Bayes
+# ------------------------------------------------------------------------------
+# Initialize the Gaussian Naive Bayes model
+gnb = GaussianNB()
+gnb.fit(X_train_scaled, y_train,)
+y_pred = gnb.predict(X_test_scaled)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+print(confusion_matrix(y_test, y_pred))
+
+# ------------------------------------------------------------------------------
+# SVM
+# ------------------------------------------------------------------------------
+# For linearly kernal
+svm_model = SVC(kernel='linear', class_weight='balanced', random_state=42)
+
+# For RBF kernel
+svm_model = SVC(kernel='rbf', class_weight='balanced', random_state=42, gamma='scale')
+
+# For polynomial kernel
+svm_model = SVC(kernel='poly', degree=3, class_weight='balanced', random_state=42, gamma='scale')
+
+svm_model.fit(X_train_scaled, y_train)
+y_pred_svm = svm_model.predict(X_test_scaled)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+print(confusion_matrix(y_test, y_pred))
+
+
+# Define the parameter grid for RBF kernel
+param_grid_rbf = {
+    'C': [0.1, 1, 10, 100],
+    'gamma': [1, 0.1, 0.01, 0.001],
+    'kernel': ['rbf']
+}
+# Define the parameter grid for Polynomial kernel
+param_grid_poly = {
+    'C': [0.1, 1, 10, 100],
+    'degree': [2, 3, 4, 5],
+    'gamma': [1, 0.1, 0.01, 0.001],
+    'kernel': ['poly']
+}
+
+# Combine parameter grids into one list
+param_grid = [param_grid_rbf, param_grid_poly]
+grid = GridSearchCV(SVC(class_weight='balanced', random_state=42), param_grid, refit=True, verbose=2, cv=5)
+grid.fit(X_train_scaled, y_train)
+y_pred_grid = grid.predict(X_test_scaled)
+
+print("Accuracy:", accuracy_score(y_test, y_pred_grid))
+print(classification_report(y_test, y_pred_grid))
+print(confusion_matrix(y_test, y_pred_grid))
 
 
 # ------------------------------------------------------------------------------
 # Use AUC (Area Under the ROC Curve) to identify the optiona threshold
 # ------------------------------------------------------------------------------
 logreg = LogisticRegression(max_iter=1000)
-logreg.fit(X_train_resampled, y_train_resampled)
+logreg.fit(X_train_scaled, y_train)
 
 # Get predicted probabilities for positive class
 y_pred_proba = logreg.predict_proba(X_test_scaled)[:, 1]
@@ -305,7 +369,7 @@ print(confusion_matrix(y_test, y_pred_optimal))
 # pca on all variables: select the top n components
 # --------------------------------------------------
 # get data
-df_X = df_sel.drop(columns=['Gender_M', 'PatientCat'])
+df_X = df_sel.drop(columns=['PatientCat'])
 df_y = y
 
 # Normalize data
@@ -344,6 +408,47 @@ plt.show()
 # xgboost
 # --------------------------------------------------
 import xgboost as xgb
+
+# Initialize the XGBoost classifier
+model = xgb.XGBClassifier(random_state=42)
+
+# Define a parameter grid for hyperparameter tuning
+param_grid = {
+    'n_estimators': [50, 100, 150],
+    'max_depth': [3, 5, 7],
+    'learning_rate': [0.01, 0.1, 0.2],
+    'subsample': [0.7, 0.8, 1.0],
+    'colsample_bytree': [0.7, 0.8, 1.0]
+}
+
+# Use GridSearchCV for hyperparameter tuning with cross-validation
+grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, scoring='accuracy', n_jobs=-1, verbose=2)
+grid_search.fit(X_train, y_train)
+
+# Get the best model from the grid search
+best_model = grid_search.best_estimator_
+
+# Train the best model on the entire training set
+best_model.fit(X_train, y_train)
+
+# Predict on the test set
+y_pred = best_model.predict(X_test)
+
+# Evaluate the model
+accuracy = accuracy_score(y_test, y_pred)
+print(f'Accuracy: {accuracy:.4f}')
+
+# Print a detailed classification report
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+# Print a confusion matrix
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+# Perform cross-validation for a more robust estimate of performance
+cv_scores = cross_val_score(best_model, X, y, cv=5, scoring='accuracy')
+print(f"\nCross-Validation Accuracy: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
 
 # Convert to DMatrix
 dtrain = xgb.DMatrix(X_train_scaled, label=y_train)
@@ -391,3 +496,44 @@ plt.ylabel('Importance')
 plt.title('Feature Importance - Decision Tree')
 plt.tight_layout()
 plt.show()
+
+
+
+# --------------------------------------------
+# Get subset of data with propensity scores
+#--------------------------------------------
+df['PatientCat'] = df['PatientCat'].astype('category')
+df.dropna(subset=['PatientCat','mean_sensim'], inplace=True)
+df_sel = df[(df['PatientCat']==1.0) | (df['PatientCat']==2.0)]
+df_sel['PatientCat'] = df_sel['PatientCat'].map({1.0: 0, 2.0: 1})
+df_sel.drop(columns=['TLI_IMPOV', 'TLI_DISORG', 'PANSS_Neg', 'PANSS_Pos'], inplace=True)
+
+# propensity score matching
+df_sel['index'] = df_sel.index
+psm = PsmPy(df_sel, treatment='PatientCat', indx='index', exclude = ['entropyApproximate', 'num_repetition', 'consec_mean', 's0_mean',
+       'n_segment', 'N_fillers', 'false_starts', 'self_corrections',
+       'clause_density', 'dependency_distance', 'content_function_ratio',
+       'type_token_ratio', 'average_word_frequency', 'mean_w2v', 'mean_sensim'])
+psm.logistic_ps(balance=True)
+psm.knn_matched(matcher='propensity_score', replacement=False, caliper=None)
+matched_df = psm.df_matched
+
+# check number of data point for each Patient
+print(matched_df.groupby('PatientCat').size())
+
+# Get data from df_sel based on the index of matched_df
+df_sel = df_sel.loc[matched_df['index']]
+df_sel.drop(columns=['index','Age', 'Gender'], inplace=True, errors='ignore')
+
+# statistically compare age and gender between two patientCat group
+print(df_sel.groupby('PatientCat')[['Age', 'Gender']].describe())
+t_statistic, p_value = stats.ttest_ind(df_sel.loc[df_sel['PatientCat']== 1,'Gender'].values,df_sel.loc[df_sel['PatientCat']== 0,'Gender'].values)
+print(f'#One-sample t-test: Statistics={np.round(t_statistic,2)}, p-value={np.round(p_value,4)}')
+
+# Get training and testing datasets
+X = df_sel.drop(columns=['PatientCat'])
+y = df_sel['PatientCat']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# Normalize training data
+X_train_scaled, X_test_scaled = normalize_data(X_train,X_test)

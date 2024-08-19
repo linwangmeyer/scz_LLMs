@@ -1,6 +1,6 @@
 # Data
 
-We transcribed and analyzed speech data from 70 treatment-naive, first-episode psychosis patients and 34 demographically-matched controls who described three images for one minute each.
+We transcribed and analyzed speech data from both individuals with psychosis and healthy controls when they described three images for one minute each.
 
 # Aims of the project
 
@@ -33,12 +33,14 @@ This project aims to extract language features from speech samples. The extract 
 'type_token_ratio','average_word_frequency'
 ```
 
-## discourse topic-level
+## Discourse topic-level
 
 ```python
-'entropyApproximate' (#the diversity of the topic distribution; For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).), 's0_mean' (#similarity between everything sentence and the picture label), 'consec_mean' (#similarity between the current sentence and its previous sentence)
+'entropyApproximate' (#the diversity of the topic distribution)
+'s0_mean' (#similarity between everything sentence and the picture label),
+'consec_mean' (#similarity between the current sentence and its previous sentence)
 ```
-
+For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).
 ## Syntactic complexity
 
 ```python
@@ -74,7 +76,7 @@ Check pairwise correlation matrix to remove or combine variables that are highly
 'num_all_words', 'num_content_words', 'length_utter’
 
 #### Before feature selection:
-<img src="https://github.com/user-attachments/assets/d5dcc137-3071-4ed7-b101-1586162df17b" alt="03_EDA_PairwiseRawVars" width="50%"/>
+<img src="https://github.com/user-attachments/assets/568383c8-8b66-4528-b2a7-01b44ca976fd" alt="03_EDA_PairwiseRawVars" width="50%"/>
 
 #### After feature selection:
 <img src="https://github.com/user-attachments/assets/84a3e3f1-c5cf-4cfa-b889-717ba15a6809" alt="04_EDA_PairwiseNewVars" width="50%"/>
@@ -130,7 +132,7 @@ For TLI_DISORG:
 
 ## Deal with unbalanced data (36 HC vs. 64 FEP)
 
-- Use MOTE to upsample data with less samples
+- Use SMOTE to upsample data with less samples
 
 ## Try out different models
 

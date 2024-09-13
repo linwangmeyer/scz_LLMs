@@ -170,9 +170,11 @@ outputfile_label = ['1min', 'spontaneous', 'concatenated']
 outputfile = outputfile_label[1]
 fname = os.path.join(parent_folder,'clean_all_' + outputfile + '.csv')
 df = pd.read_csv(fname)
+df_sel = df[(df['PatientCat'] == 1.0) | (df['PatientCat'] == 2.0)] #(64 FEP vs. 34 HC)
+#df_sel = df.copy() #(64 FEP vs. 34 HC vs. 16 CHR vs. 15 Chronic)
 
 # Get data with or without Gender as a predictor
-df_sel = preprocess_data(df.copy(), include_gender=True)
+df_sel = preprocess_data(df_sel, include_gender=True)
 df_sel.drop(columns=['PANSS_Neg', 'PANSS_Pos'], inplace=True)
 
 # Get variables of interest
@@ -221,10 +223,14 @@ mae_disorg = mean_absolute_error(y_test['TLI_DISORG'], y_pred_disorg)
 r2_impov = r2_score(y_test['TLI_IMPOV'], y_pred_impov)
 r2_disorg = r2_score(y_test['TLI_DISORG'], y_pred_disorg)
 
-print(f"Mean Absolute Error (IMPOV): {mae_impov}")
-print(f"Mean Absolute Error (DISORG): {mae_disorg}")
-print(f"R2 (IMPOV): {r2_impov}")
-print(f"R2 (DISORG): {r2_disorg}")
+print(f"#Mean Absolute Error (IMPOV): {mae_impov}")
+print(f"#Mean Absolute Error (DISORG): {mae_disorg}")
+print(f"#R2 (IMPOV): {r2_impov}")
+print(f"#R2 (DISORG): {r2_disorg}")
+#Mean Absolute Error (IMPOV): 0.24120356240946186
+#Mean Absolute Error (DISORG): 0.4438707076502465
+#R2 (IMPOV): 0.17022283624803025
+#R2 (DISORG): 0.0013707228750808875
 
 # Test for assumptions
 residual_analysis(y_test['TLI_IMPOV'], y_pred_impov)
@@ -249,7 +255,7 @@ plt.barh(sorted_feature_names_impov, sorted_coef_impov)
 plt.xlabel('Coefficient Magnitude')
 plt.title('Feature Importance for TLI_IMPOV')
 plt.gca().invert_yaxis()  # Invert y-axis to have the most important feature on top
-plt.savefig(os.path.join(parent_folder,'plots','ML_01_Lasso_Predictbeta.png'), format='png')
+plt.savefig(os.path.join(parent_folder,'plots','ML_01_Lasso_PredictIMPOV_beta.eps'), format='eps')
 plt.show()
 
 # Plot feature importance for TLI_DISORG
@@ -258,7 +264,7 @@ plt.barh(sorted_feature_names_disorg, sorted_coef_disorg)
 plt.xlabel('Coefficient Magnitude')
 plt.title('Feature Importance for TLI_DISORG')
 plt.gca().invert_yaxis()
-plt.savefig(os.path.join(parent_folder,'plots','ML_02_Lasso_PredictDISORG_beta.png'), format='png')
+plt.savefig(os.path.join(parent_folder,'plots','ML_02_Lasso_PredictDISORG_beta.eps'), format='eps')
 plt.show()
 
 
@@ -289,16 +295,20 @@ improv_predictions = best_model_impov.predict(X_test_scaled)
 mse_impov = mean_absolute_error(y_test['TLI_IMPOV'], improv_predictions)
 r2_impov = r2_score(y_test['TLI_IMPOV'], improv_predictions)
 print("TLI_IMPOV Model Evaluation:")
-print(f"Mean Absolute Error (MAE): {mse_impov:.2f}")
-print(f"R-squared (R2): {r2_impov:.2f}")
+print(f"#Mean Absolute Error (MAE): {mse_impov:.2f}")
+print(f"#R-squared (R2): {r2_impov:.2f}")
+#Mean Absolute Error (MAE): 0.23
+#R-squared (R2): 0.43
 
 # Evaluate TLI_DISORG predictions
 disorg_predictions = best_model_disorg.predict(X_test_scaled)
 mse_disorg = mean_absolute_error(y_test['TLI_DISORG'], disorg_predictions)
 r2_disorg = r2_score(y_test['TLI_DISORG'], disorg_predictions)
 print("\nTLI_DISORG Model Evaluation:")
-print(f"Mean Absolute Error (MAE): {mse_disorg:.2f}")
-print(f"R-squared (R2): {r2_disorg:.2f}")
+print(f"#Mean Absolute Error (MAE): {mse_disorg:.2f}")
+print(f"#R-squared (R2): {r2_disorg:.2f}")
+#Mean Absolute Error (MAE): 0.41
+#R-squared (R2): -0.03
 
 # Feature selection based on their importance
 feature_importance = best_model_impov.feature_importances_

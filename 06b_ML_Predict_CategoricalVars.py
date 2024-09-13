@@ -55,6 +55,16 @@ def model_evaluate(y_test,y_pred,show_metric=True, best_params=None):
     return accuracy, cf_matrix, precision, recall, f1
 
 
+# Get all critical metrics
+def get_precision_recall_f1_g_measure(y_test, y_pred):
+    accuracy = accuracy_score(y_test, y_pred)
+    precision = np.round(float(precision_score(y_test, y_pred)),4)
+    recall = np.round(float(recall_score(y_test, y_pred)),4)
+    f1 = np.round(float(f1_score(y_test, y_pred)),4)
+    g_measure = np.round(float(np.sqrt(precision * recall)),4)
+    return accuracy, precision, recall, f1, g_measure,confusion_matrix(y_test, y_pred)
+
+
 
 def preprocess_data_cat(df, include_gender=True):
     # Drop unnecessary columns
@@ -139,6 +149,23 @@ print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 print(confusion_matrix(y_test,y_pred))
 
+# get performance metrics
+accuracy, precision, recall, f1, g_measure,cm = get_precision_recall_f1_g_measure(y_test, y_pred)
+print(f"#accuracy: {accuracy:.2f}")
+print(f"#precision: {precision:.2f}")
+print(f"#recall: {recall:.2f}")
+print(f"#f1: {f1:.2f}")
+print(f"#G-measure: {g_measure:.2f}")
+print(f'#Confusion Matrix: \n{cm}')
+#accuracy: 0.85
+#precision: 0.86
+#recall: 0.92
+#f1: 0.89
+#G-measure: 0.89
+#Confusion Matrix: 
+#[[ 5  2]
+# [ 1 12]]
+
 # Check feature importances
 importances = model.feature_importances_
 features = X_train.columns
@@ -155,15 +182,30 @@ plt.xlabel('Importance')
 plt.ylabel('Feature')
 plt.title('Feature Importances in Random Forest Classifier')
 plt.gca().invert_yaxis()
-plt.savefig(os.path.join(parent_folder,'plots','ML_03_RandomForest_PatientCat_beta.png'), format='png')
+plt.savefig(os.path.join(parent_folder,'plots','ML_03_RandomForest_PatientCat_beta.eps'), format='eps', dpi=300)
 plt.show()
 
-# Perform cross-validation to evaluate accuracy
-cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-cv_scores = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring='accuracy')
-print(f"Cross-validation scores: {cv_scores}")
-print(f"Mean cross-validation score: {cv_scores.mean()}")
+# Check the direction of the feature importances
+features = importance_df['Feature'].to_list()
 
+means_by_patientcat = df_sel[features].groupby(df_sel['PatientCat']).mean()
+means_cat_0 = means_by_patientcat.loc[0]
+means_cat_1 = means_by_patientcat.loc[1]
+features_with_larger_mean_cat_1 = means_cat_1[means_cat_1 > means_cat_0].index.tolist()
+features_with_larger_mean_cat_1
+
+# Boxplot to visualize the difference
+n_cols = 4
+n_rows = (len(features) + n_cols - 1) // n_cols  # Calculate the number of rows needed
+fig, axes = plt.subplots(n_rows, n_cols, figsize=(20, 15))
+fig.tight_layout(pad=4.0)
+axes = axes.flatten()
+for i, col in enumerate(features):
+    sns.boxplot(x='PatientCat', y=col, data=df_sel, ax=axes[i])
+    axes[i].set_title(f'{col}')
+for j in range(i + 1, len(axes)):
+    fig.delaxes(axes[j])
+plt.show()
 
 # --------------------------------------------------
 # Use L1 regularized logisticto identify important variables
@@ -189,6 +231,23 @@ y_pred = best_logreg.predict(X_test_scaled)
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 print(confusion_matrix(y_test, y_pred))
+
+# get performance metrics
+accuracy, precision, recall, f1, g_measure,cm = get_precision_recall_f1_g_measure(y_test, y_pred)
+print(f"#accuracy: {accuracy:.2f}")
+print(f"#precision: {precision:.2f}")
+print(f"#recall: {recall:.2f}")
+print(f"#f1: {f1:.2f}")
+print(f"#G-measure: {g_measure:.2f}")
+print(f'#Confusion Matrix: \n{cm}')
+#accuracy: 0.65
+#precision: 0.75
+#recall: 0.69
+#f1: 0.72
+#G-measure: 0.72
+#Confusion Matrix: 
+#[[4 3]
+# [4 9]]
 
 # Examine the importance of predictors
 coefficients = best_logreg.coef_[0]
@@ -232,10 +291,22 @@ print("Best Parameters:", grid_search.best_params_)
 print("Accuracy:", accuracy_score(y_test, y_pred))
 print(classification_report(y_test, y_pred))
 
-# Cross-validation
-cv_scores = grid_search.cv_results_['mean_test_score']
-print("Cross-validation scores:", cv_scores)
-print("Mean CV score:", cv_scores.mean())
+# get performance metrics
+accuracy, precision, recall, f1, g_measure,cm = get_precision_recall_f1_g_measure(y_test, y_pred)
+print(f"#accuracy: {accuracy:.2f}")
+print(f"#precision: {precision:.2f}")
+print(f"#recall: {recall:.2f}")
+print(f"#f1: {f1:.2f}")
+print(f"#G-measure: {g_measure:.2f}")
+print(f'#Confusion Matrix: \n{cm}')
+#accuracy: 0.75
+#precision: 0.83
+#recall: 0.77
+#f1: 0.80
+#G-measure: 0.80
+#Confusion Matrix: 
+#[[ 5  2]
+# [ 3 10]]
 
 # Check if coefficients are zero
 coefficients = best_model.coef_[0]
@@ -445,31 +516,6 @@ print(classification_report(y_test, y_pred))
 # Print a confusion matrix
 print("\nConfusion Matrix:")
 print(confusion_matrix(y_test, y_pred))
-
-# Perform cross-validation for a more robust estimate of performance
-cv_scores = cross_val_score(best_model, X, y, cv=5, scoring='accuracy')
-print(f"\nCross-Validation Accuracy: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
-
-# Convert to DMatrix
-dtrain = xgb.DMatrix(X_train_scaled, label=y_train)
-dtest = xgb.DMatrix(X_test_scaled, label=y_test)
-
-params = {
-    'objective': 'multi:softmax',  # for multi-class classification
-    'num_class': len(df_sel['PatientCat'].unique()),  # number of classes
-    'colsample_bytree': 0.8,
-    'learning_rate': 0.1,
-    'max_depth': 5,
-    'alpha': 10
-}
-
-num_round = 50  # Number of boosting rounds
-model = xgb.train(params, dtrain, num_round)
-
-y_pred = model.predict(dtest)
-
-accuracy = accuracy_score(y_test, y_pred)
-print(f'Accuracy: {accuracy}')
 
 
 # --------------------------------------------------

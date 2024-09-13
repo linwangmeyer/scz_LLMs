@@ -8,49 +8,53 @@ This project aims to extract language features from speech samples. The extract 
 
 # Extract language features
 
+## Lexical-level and sentence-level features
+
+```python
+'type_token_ratio’,
+'average_word_frequency’,
+'n_segment', 
+'length_utter’, 
+'num_all_words', 
+'num_content_words’, 
+'num_repetition’ (within a 5 content word window) 
+```
+
+## Word-level associations
+
+```python
+ 
+ 'n_1', 'n_2', 'n_3', 'n_4', 'n_5'
+ (#similarity between every word and its preceeding N words)
+```
+
 ## Sentence-level coherence
 
 ```python
-'senN_4', 'senN_3', 'senN_2', 'senN_1'
+'senN_4', 'senN_3', 'senN_2', 'senN_1’
+'consec_mean' (#similarity between the current sentence and its previous sentence)
+```
+
+## Discourse level features
+
+```python
+'entropyApproximate' (#the diversity of the topic distribution)
+'s0_mean' (#similarity between everything sentence and the picture label)
 ```
 
 ## Disfluency
 
 ```python
- 
- 'N_fillers', 'N_immediate_repetation', 'false_starts', 'self_corrections'
-```
-
-## Word-level association
-
-```python
-'n_1', 'n_2', 'n_3', 'n_4', 'n_5' (#similarity between every word and its preceeding N words)
-```
-
-## Lexical-level
-
-```python
-'type_token_ratio','average_word_frequency'
-```
-
-## Discourse topic-level
-
-```python
-'entropyApproximate' (#the diversity of the topic distribution)
-'s0_mean' (#similarity between everything sentence and the picture label),
-'consec_mean' (#similarity between the current sentence and its previous sentence)
+'N_fillers', 
+'N_immediate_repetation', 
+'false_starts', 
+'self_corrections'
 ```
 For more details on BERTopic, see my [post](https://wordpress.com/post/linlifejourney.wordpress.com/291).
 ## Syntactic complexity
 
 ```python
 'clause_density', 'dependency_distance', 'content_function_ratio'
-```
-
-## Other relevant variables
-
-```python
-'n_segment', 'length_utter','num_all_words', 'num_content_words', 'num_repetition'
 ```
 
 # Exploratory data analysis (EDA)
@@ -81,6 +85,18 @@ Check pairwise correlation matrix to remove or combine variables that are highly
 #### After feature selection:
 <img src="https://github.com/user-attachments/assets/84a3e3f1-c5cf-4cfa-b889-717ba15a6809" alt="04_EDA_PairwiseNewVars" width="50%"/>
 
+### Remaining predictors
+```python
+'entropyApproximate’, 's0_mean’, (global topic level)
+'mean_sensim’, 'consec_mean’, (intermediate-level coherence)
+'mean_w2v', (local word associations)
+'N_fillers', 'false_starts', 'self_corrections’, (disfluency)
+'clause_density', 'dependency_distance', 'content_function_ratio’, (disfluency)
+'n_segment', 'num_repetition’, (sentence-level)
+'type_token_ratio', 'average_word_frequency’, (lexical-level)
+'Age', 'Gender’ (demographic)
+```
+
 ## Visualize data patterns
 
 ### Continuous variables
@@ -91,7 +107,7 @@ Visualize how the continuous dependent variables correlate to the language featu
 Visualize how the Categorical dependent variables correlate to the language features.
 <img src="https://github.com/user-attachments/assets/69d63410-3e29-49ce-b68d-ed1abd607f7f" alt="06_EDA_byPateintCategory" width="50%"/>
 
-# Model continuous measures (TIL_IMPOV and TIL_DISORG)
+# Model continuous measures (TIL_IMPOV and TIL_DISORG; with four groups of participants)
 
 ### Lasso Regression for Feature Selection
 
